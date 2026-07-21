@@ -21,9 +21,16 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Render golden tests (PowerShell 7)
-        shell: pwsh
-        run: pwsh -NoProfile -File tests/run.ps1
-      - name: Render golden tests (Windows PowerShell 5.1)
-        shell: powershell
-        run: powershell -NoProfile -ExecutionPolicy Bypass -File tests\run.ps1
+      # Force the OEM console codepage (IBM437) before running, so the runner's
+      # UTF-8 default can't hide a console-decode bug the way it did once before —
+      # the statusline emits UTF-8 and the tests must pin it regardless of codepage.
+      - name: Render golden tests (PowerShell 7, OEM codepage)
+        shell: cmd
+        run: |
+          chcp 437
+          pwsh -NoProfile -File tests\run.ps1
+      - name: Render golden tests (Windows PowerShell 5.1, OEM codepage)
+        shell: cmd
+        run: |
+          chcp 437
+          powershell -NoProfile -ExecutionPolicy Bypass -File tests\run.ps1

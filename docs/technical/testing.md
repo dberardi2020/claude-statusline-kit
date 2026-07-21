@@ -38,12 +38,35 @@ and invalid JSON aborts while leaving the file untouched.
 - **PS 5.1 requires a UTF-8 BOM.** Without it, PowerShell 5.1 reads the script as
   Windows-1252, mangles the astral-plane emoji, and fails to parse. The BOM on line 1 of
   `statusline.ps1` is load-bearing — do not strip it.
+- **Console encoding must be pinned in the test runner.** PS 5.1 decodes a child process's
+  stdout using `[Console]::OutputEncoding`, which on a real Windows console is the OEM
+  codepage (e.g. IBM437) — so the statusline's UTF-8 emoji come back as mojibake. `run.ps1`
+  pins both directions to **BOM-less** UTF-8 (`New-Object System.Text.UTF8Encoding $false`;
+  a BOM-emitting encoding would prefix a BOM onto the child's stdin and break `ConvertFrom-Json`)
+  and restores the prior encoding in a `finally`.
+- **Windows `jq.exe` emits CRLF.** A native Windows `jq` (e.g. Chocolatey's) terminates lines
+  with CRLF, so under Git Bash every parsed value carries a trailing `\r` — enough to break
+  the bash arithmetic. `statusline-command.sh` strips CR at both jq boundaries (a no-op where
+  jq emits LF).
 - The `.gitattributes` `eol=lf` rule keeps a Windows checkout from rewriting line endings,
   which would otherwise corrupt the bash scripts and break golden comparisons.
+
+## Known limitation: bash on Windows
+
+The bash script is scoped to **macOS/Linux** (Windows users run `statusline.ps1`), and running
+it under Git Bash is unsupported. In `install.sh`, the *re-install does not warn* assertion is
+**skipped** on Git Bash / MSYS / Cygwin: `jq --arg cmd "$dest"` passes through MSYS path
+translation, so `settings.json` stores a `C:/…` path while `$dest` stays `/…`, and the re-read
+never matches — so a refresh always warns. Rather than import Windows path-translation handling
+(`MSYS2_ARG_CONV_EXCL`) into a script deliberately kept platform-pure (see
+[decisions/0001](../decisions/0001-two-native-shell-scripts-over-node.md)), the assertion is
+skipped there; the suite reads 7 passed + 1 skipped.
 
 ## CI
 
 `.github/workflows/tests.yml` runs the bash suites on `ubuntu-latest` and the render tests on
 `windows-latest` under **both** PowerShell 7 and Windows PowerShell 5.1 — the latter being the
-version the BOM fix targets. This makes parity a merge-blocking invariant and gives the
-PowerShell path real Windows coverage on every push.
+version the BOM fix targets. The Windows steps force the **OEM console codepage** (`chcp 437`)
+first, so a runner's UTF-8 default can no longer hide a console-decode bug the way it did once
+before. This makes parity a merge-blocking invariant and gives the PowerShell path real Windows
+coverage on every push.
