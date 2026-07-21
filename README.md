@@ -1,5 +1,10 @@
 # Claude Code Statusline Kit
 
+[![Tests](https://github.com/dberardi2020/claude-statusline-kit/actions/workflows/tests.yml/badge.svg)](https://github.com/dberardi2020/claude-statusline-kit/actions/workflows/tests.yml)
+![platform: macOS | Linux | Windows](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows-blue)
+![shells: bash | PowerShell](https://img.shields.io/badge/shells-bash%20%7C%20PowerShell-blue)
+![license: MIT](https://img.shields.io/badge/license-MIT-green)
+
 A two-line [Claude Code](https://claude.com/claude-code) statusline — **model · context ·
 rate-limits**, then **cwd · branch · cost · elapsed** — bracketed by rules. One statusline
 in two shells: **bash** for macOS/Linux, **PowerShell** for Windows. Each script is
@@ -122,9 +127,6 @@ context row. The layout is two pipe-delimited lines wrapped in `─`×71 rules.
   `statusLine` configured, it's replaced (never silently) — the installer prints a warning
   with the previous command and the backup path so you can restore it.
 
-The styled reference doc [`docs/statusline.html`](docs/statusline.html) carries the same
-content as this README in a browsable form.
-
 ## Roadmap
 
 Today the kit ships one layout in two shells. Where it's headed:
@@ -133,6 +135,31 @@ Today the kit ships one layout in two shells. Where it's headed:
 - **A builder / wizard** — pick your segments and layout, generate the script. The
   self-install path here is the seed: its safe `settings.json` merge is exactly what the
   builder will reuse.
+
+## Documentation
+
+Full docs live in [`docs/`](docs/README.md):
+
+- **[Product overview](docs/product/overview.md)** — what it is, who it's for, and what each
+  segment means.
+- **[Technical design](docs/technical/design.md)** — the statusline JSON contract, segment
+  computation, and the self-install mechanism.
+- **[Testing](docs/technical/testing.md)** — the golden-parity approach, the `SL_NOW` clock
+  seam, and CI.
+- **[Decisions](docs/decisions/)** — architecture decision records.
+
+The styled one-page reference is [`docs/statusline.html`](docs/statusline.html), which
+carries the same content as this README in a browsable form.
+
+## Repository layout
+
+```
+statusline-command.sh   # bash implementation (macOS/Linux; needs jq)
+statusline.ps1          # PowerShell implementation (Windows, PS 5.1-safe)
+docs/                   # product overview, technical design, testing, ADRs
+tests/                  # golden render fixtures + install-mode checks
+llms.txt                # summary + links for crawling agents
+```
 
 ## License
 
