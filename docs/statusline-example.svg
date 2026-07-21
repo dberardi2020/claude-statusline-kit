@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="148" viewBox="0 0 720 148" role="img" aria-label="Example statusline. Line 1: robot [Opus 4.8], a green context bar at 42 percent, a yellow 5-hour countdown [2h0m] with 15 percent used, and a yellow 7-day countdown [3d11h] with 50 percent used. Line 2: folder Home, branch master, cost 2.10 dollars, elapsed 1h30m.">
+  <rect width="720" height="148" rx="10" fill="#0c0d12"/>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">
+    <text xml:space="preserve" x="20" y="40" fill="#e9ecf3"><tspan fill="#9aa0b3">| </tspan>🤖 <tspan fill="#ffffff">[Opus 4.8]</tspan><tspan fill="#9aa0b3"> | </tspan><tspan fill="#5fd07a">▓▓▓▓░░░░░░ 42%</tspan><tspan fill="#9aa0b3"> | </tspan>⏳ <tspan fill="#e8c14f">[2h0m]</tspan> <tspan fill="#5fd07a">15%</tspan><tspan fill="#9aa0b3"> | </tspan>📅 <tspan fill="#e8c14f">[3d11h]</tspan> <tspan fill="#5fd07a">50%</tspan><tspan fill="#9aa0b3"> |</tspan></text>
+    <text x="20" y="64" fill="#5b6070">───────────────────────────────────────────────────────────────────────</text>
+    <text xml:space="preserve" x="20" y="98" fill="#e9ecf3"><tspan fill="#9aa0b3">| </tspan>📁 <tspan fill="#ffffff">Home</tspan><tspan fill="#9aa0b3"> | </tspan>🌿 <tspan fill="#ffffff">master</tspan><tspan fill="#9aa0b3"> | </tspan>💰 <tspan fill="#ffffff">$2.10</tspan><tspan fill="#9aa0b3"> | </tspan>⏱️ <tspan fill="#ffffff">1h30m</tspan><tspan fill="#9aa0b3"> |</tspan></text>
+    <text x="20" y="122" fill="#5b6070">───────────────────────────────────────────────────────────────────────</text>
+  </g>
+</svg>

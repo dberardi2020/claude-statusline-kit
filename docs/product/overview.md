@@ -35,8 +35,10 @@ Two lines, bracketed by rules:
   📅 7-day rate-limit window.
 - **Line 2** — 📁 directory · 🌿 git branch · 💰 session cost · ⏱️ elapsed time.
 
-Percentages are color-coded: **green ≤60 · yellow ≤85 · red >85**. Countdowns and labels
-stay white. Full field-by-field detail is in [technical/design.md](../technical/design.md).
+Percentages are color-coded: **green ≤60 · yellow ≤85 · red >85**. The rate-limit countdowns
+are color-coded by how much of the window is left (**>60% left → red · 20–60% → yellow · <20% →
+green**), inverse to the percentage; the session-elapsed time and all labels stay white. Full
+field-by-field detail is in [technical/design.md](../technical/design.md).
 
 ## Design principles
 

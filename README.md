@@ -10,12 +10,7 @@ rate-limits**, then **cwd · branch · cost · elapsed** — bracketed by rules.
 in two shells: **bash** for macOS/Linux, **PowerShell** for Windows. Each script is
 self-installing, so setup is one download and one command.
 
-```
-| 🤖 [Opus 4.8] | ▓▓▓▓░░░░░░ 42% | ⏳ [2h0m] 15% | 📅 [3d11h] 50% |
-───────────────────────────────────────────────────────────────────────
-| 📁 Home | 🌿 master | 💰 $2.10 | ⏱️ 1h30m |
-───────────────────────────────────────────────────────────────────────
-```
+![Two-line statusline — line 1: model, a green context-fill bar, and the 5-hour and 7-day rate-limit windows (countdown colored by time left, percent by usage); line 2: directory, git branch, session cost, and elapsed time.](docs/statusline-example.svg)
 
 It surfaces at a glance what Claude Code otherwise leaves implicit: which model you're on,
 how full the context window is, how close each rate-limit window is to resetting, and the
