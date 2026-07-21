@@ -8,19 +8,6 @@ $here = Split-Path -Parent $PSCommandPath
 $repo = Split-Path -Parent $here
 $scriptPath = Join-Path $repo 'statusline.ps1'
 $exe = if ($PSVersionTable.PSVersion.Major -ge 6) { 'pwsh' } else { 'powershell' }
-
-# The statusline emits UTF-8. PS 5.1 decodes a child process's stdout using
-# [Console]::OutputEncoding, which in a real Windows console is the OEM codepage
-# (IBM437/1252) -- so every emoji came back as mojibake and all 7 goldens failed.
-# CI's runner happens to default to UTF-8, which is why this passed there and only
-# broke on an actual desktop. Pin both directions to *BOM-less* UTF-8: the plain
-# [Text.Encoding]::UTF8 has emitBOM=true, which is what prefixed a BOM onto the
-# child's stdin and made the JSON unparseable.
-$prevOut = [Console]::OutputEncoding
-[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false
-$OutputEncoding           = New-Object System.Text.UTF8Encoding $false
-try {
-
 $env:SL_NOW = '1700000000'
 $pass = 0; $fail = 0
 Get-ChildItem (Join-Path $here 'fixtures') -Filter *.json | Sort-Object Name | ForEach-Object {
@@ -39,6 +26,4 @@ Get-ChildItem (Join-Path $here 'fixtures') -Filter *.json | Sort-Object Name | F
     }
 }
 Write-Host "---- render: $pass passed, $fail failed ----"
-
-} finally { [Console]::OutputEncoding = $prevOut }
 if ($fail -ne 0) { exit 1 }
