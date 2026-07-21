@@ -20,7 +20,9 @@ self-installing, so setup is one download and one command.
 It surfaces at a glance what Claude Code otherwise leaves implicit: which model you're on,
 how full the context window is, how close each rate-limit window is to resetting, and the
 session's directory, branch, and cost. Percentages are color-coded
-(**green ≤60 · yellow ≤85 · red >85**); countdowns and labels stay white.
+(**green ≤60 · yellow ≤85 · red >85**); the rate-limit **countdowns** are color-coded by how
+much of the window is left (**>60% left → red · 20–60% → yellow · <20% → green**); the
+session-elapsed time and all labels stay white.
 
 ## Install
 
@@ -101,7 +103,7 @@ On Windows, point it at PowerShell instead:
 |---|---------|-----------------|----------------|
 | 1 | 🤖 Model | `model.display_name` | Bracketed name, `(1M context)` annotation stripped; white. |
 | 2·3 | Context bar + % | `context_window.used_percentage` | 10-cell `▓`/`░` bar + percent. green ≤60 · yellow ≤85 · red >85. |
-| 4 | ⏳ 5-hour limit | `rate_limits.five_hour.resets_at` · `.used_percentage` | `[Hh Mm] pct%` — bracketed countdown (white) then percent (colored). |
+| 4 | ⏳ 5-hour limit | `rate_limits.five_hour.resets_at` · `.used_percentage` | `[Hh Mm] pct%` — countdown colored by time left (>60% window left → red · 20–60% → yellow · <20% → green), percent colored by usage. |
 | 5 | 📅 7-day limit | `rate_limits.seven_day.resets_at` · `.used_percentage` | `[Dd Hh] pct%`. |
 | 6 | 📁 Directory | `workspace.current_dir` / `cwd` | Leaf of the working directory; white. |
 | 7 | 🌿 Branch | `.git/HEAD` of the cwd (walked up) | Current branch, or `---` when not a repo. |
@@ -119,7 +121,9 @@ context row. The layout is two pipe-delimited lines wrapped in `─`×71 rules.
 - **Graceful segments** — when the rate-limit fields are absent, those segments drop out and
   line 1 is just model + context.
 - **Rate-limit countdowns** — `resets_at` (unix seconds) minus now, floored at 0, split into
-  d/h/m.
+  d/h/m, and colored by the fraction of the window (5h / 7d) still remaining — the inverse of
+  the percentage's coloring, so a window that just reset reads calm and one with lots of time
+  left reads hot.
 - **Cross-platform parity** — both implementations read the same JSON schema and produce the
   same layout.
 - **Safe install** — `--install` backs up `settings.json` before editing and merges rather

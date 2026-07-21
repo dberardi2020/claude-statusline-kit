@@ -82,6 +82,15 @@ $white  = "$($esc)[97m"
 
 $pipe = "$($white)|$($reset)"
 
+# Countdown colour — inverted from pct: more of the window still left = warmer.
+#   >60% of the window left → red · 20–60% → yellow · <20% → green (matches bash)
+function Get-CountdownColor {
+    param([int]$s, [int]$win)
+    if ($win -le 0) { return $white }
+    $rem = [int][math]::Floor(100 * $s / $win)
+    if ($rem -gt 60) { return $red } elseif ($rem -ge 20) { return $yellow } else { return $green }
+}
+
 # --- Emoji ----------------------------------------------------------------
 # Defined as char sequences; literal emoji above U+FFFF get mangled in PS 5.1.
 $e_robot  = [char]::ConvertFromUtf32(0x1F916)   # 🤖 model
@@ -130,9 +139,10 @@ if ($null -ne $r15h_reset -and $null -ne $r15h_pct) {
     $diff5 = [math]::Max(0, [int]([double]$r15h_reset - $now))
     $h5    = [int][math]::Floor($diff5 / 3600)          # floor, matching bash integer division
     $m5    = [int][math]::Floor(($diff5 % 3600) / 60)
-    # Colour the window by its used-percentage (green ≤60, yellow ≤85, else red)
+    # Countdown coloured by time left; percent coloured by usage (green ≤60, yellow ≤85, else red)
+    $cd5   = Get-CountdownColor $diff5 18000
     $c5h   = if ($pct5 -le 60) { $green } elseif ($pct5 -le 85) { $yellow } else { $red }
-    $parts += "$e_clock $($white)[${h5}h${m5}m]$($reset) $($c5h)$($pct5)%$($reset)"
+    $parts += "$e_clock $($cd5)[${h5}h${m5}m]$($reset) $($c5h)$($pct5)%$($reset)"
 }
 
 if ($null -ne $r17d_reset -and $null -ne $r17d_pct) {
@@ -140,8 +150,9 @@ if ($null -ne $r17d_reset -and $null -ne $r17d_pct) {
     $diff7 = [math]::Max(0, [int]([double]$r17d_reset - $now))
     $d7    = [int][math]::Floor($diff7 / 86400)         # floor, matching bash integer division
     $h7    = [int][math]::Floor(($diff7 % 86400) / 3600)
+    $cd7   = Get-CountdownColor $diff7 604800
     $c7d   = if ($pct7 -le 60) { $green } elseif ($pct7 -le 85) { $yellow } else { $red }
-    $parts += "$e_cal $($white)[${d7}d${h7}h]$($reset) $($c7d)$($pct7)%$($reset)"
+    $parts += "$e_cal $($cd7)[${d7}d${h7}h]$($reset) $($c7d)$($pct7)%$($reset)"
 }
 
 # ===========================================================================

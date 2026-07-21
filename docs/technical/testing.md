@@ -13,8 +13,9 @@ has zero runtime effect; it exists purely so tests produce stable, comparable ou
 ## Render golden tests
 
 - `tests/fixtures/*.json` — representative statusline payloads (typical, the three color
-  thresholds, absent rate-limits, a past reset that must clamp to `0`, and a minimal payload
-  that exercises defaults and dropped segments).
+  thresholds, absent rate-limits, a past reset that must clamp to `0`, a minimal payload that
+  exercises defaults and dropped segments, and a red-countdown case where the window is early
+  — low usage but a hot countdown, proving the two colorings are independent).
 - `tests/golden/*.txt` — the expected output, generated from the **bash** script (the
   reference implementation).
 - `tests/run.sh` and `tests/run.ps1` each feed the fixtures through their script and compare

@@ -50,7 +50,7 @@
 
 <h2>What it renders</h2>
 <div class="render">
-<div><span class="dim">|</span> 🤖 <span class="w">[Opus 4.8]</span> <span class="dim">|</span> <span class="g">▓▓▓▓░░░░░░ 42%</span> <span class="dim">|</span> ⏳ <span class="w">[2h0m]</span> <span class="g">15%</span> <span class="dim">|</span> 📅 <span class="w">[3d11h]</span> <span class="g">50%</span> <span class="dim">|</span></div>
+<div><span class="dim">|</span> 🤖 <span class="w">[Opus 4.8]</span> <span class="dim">|</span> <span class="g">▓▓▓▓░░░░░░ 42%</span> <span class="dim">|</span> ⏳ <span class="y">[2h0m]</span> <span class="g">15%</span> <span class="dim">|</span> 📅 <span class="y">[3d11h]</span> <span class="g">50%</span> <span class="dim">|</span></div>
 <div class="rule">───────────────────────────────────────────────────────────────────────</div>
 <div><span class="dim">|</span> 📁 <span class="w">Home</span> <span class="dim">|</span> 🌿 <span class="w">master</span> <span class="dim">|</span> 💰 <span class="w">$2.10</span> <span class="dim">|</span> ⏱️ <span class="w">1h30m</span> <span class="dim">|</span></div>
 <div class="rule">───────────────────────────────────────────────────────────────────────</div>
@@ -73,7 +73,7 @@
 <tr><th>#</th><th>Segment</th><th>Source field(s)</th><th>Format &amp; colour</th></tr>
 <tr><td>1</td><td>🤖 Model</td><td><code>model.display_name</code></td><td>Bracketed name with the "(1M context)" annotation stripped; white.</td></tr>
 <tr><td>2·3</td><td>Context bar + %</td><td><code>context_window.used_percentage</code></td><td>10-cell <code>▓</code>/<code>░</code> bar + percent. <span class="g">green ≤60</span> · <span class="y">yellow ≤85</span> · <span class="r">red &gt;85</span>.</td></tr>
-<tr><td>4</td><td>⏳ 5-hour limit</td><td><code>rate_limits.five_hour.resets_at</code> · <code>.used_percentage</code></td><td><code>[Hh Mm] pct%</code> — bracketed countdown (white) then percent (coloured, 60/85).</td></tr>
+<tr><td>4</td><td>⏳ 5-hour limit</td><td><code>rate_limits.five_hour.resets_at</code> · <code>.used_percentage</code></td><td><code>[Hh Mm] pct%</code> — countdown coloured by time left (<span class="r">&gt;60% window left</span> · <span class="y">20–60%</span> · <span class="g">&lt;20%</span>), then percent coloured by usage (60/85).</td></tr>
 <tr><td>5</td><td>📅 7-day limit</td><td><code>rate_limits.seven_day.resets_at</code> · <code>.used_percentage</code></td><td><code>[Dd Hh] pct%</code>.</td></tr>
 <tr><td>6</td><td>📁 Directory</td><td><code>workspace.current_dir</code> / <code>cwd</code></td><td>Leaf of the working directory; white.</td></tr>
 <tr><td>7</td><td>🌿 Branch</td><td><code>.git/HEAD</code> of the cwd (walked up)</td><td>Current branch, or <code>---</code> when not a repo.</td></tr>
@@ -86,8 +86,8 @@
 <ul>
 <li><b>Safe field access:</b> every value read through a guarded helper (<code>Get-Safe</code> in PS, <code>is_set</code> + <code>jq //</code> defaults in bash) — a missing key degrades the line instead of erroring.</li>
 <li><b>Graceful segments:</b> when the rate-limit fields are absent, those segments drop out and line 1 is just model + context (verified in test).</li>
-<li><b>Colour policy:</b> green ≤60 / yellow ≤85 / red above, applied to the context bar and each rate-limit percent; countdowns and labels stay white.</li>
-<li><b>Rate-limit countdowns:</b> <code>resets_at</code> (unix seconds) minus now, floored at 0, split into d/h/m.</li>
+<li><b>Colour policy:</b> green ≤60 / yellow ≤85 / red above, applied to the context bar and each rate-limit percent. The rate-limit <b>countdowns</b> are coloured <i>inversely</i>, by how much of the window is still left (<span class="r">&gt;60% left → red</span>, <span class="y">20–60% → yellow</span>, <span class="g">&lt;20% → green</span>). The session-elapsed time and all labels stay white.</li>
+<li><b>Rate-limit countdowns:</b> <code>resets_at</code> (unix seconds) minus now, floored at 0, split into d/h/m; coloured by the fraction of the window (5h / 7d) remaining.</li>
 </ul>
 
 <h2>Install</h2>

@@ -25,7 +25,10 @@ rather than erroring. In bash this is `is_set` + `jq //` defaults; in PowerShell
 - **Context bar** — 10 cells; `filled = round(pct / 10)` (bash `(p+5)/10`), clamped 0–10;
   filled cells `▓`, empty `░`.
 - **Rate-limit countdowns** — `resets_at` (unix seconds) minus now, floored at 0, split into
-  days/hours/minutes; the 5-hour window shows `[Hh Mm]`, the 7-day window shows `[Dd Hh]`.
+  days/hours/minutes; the 5-hour window shows `[Hh Mm]`, the 7-day window shows `[Dd Hh]`. The
+  countdown is colored by the fraction of the window still remaining (`rem = 100·s/win`, with
+  `win` = 18000s / 604800s): **>60% left → red, 20–60% → yellow, <20% → green** — deliberately
+  inverse to the usage percentage.
 - **Branch** — walk up from the cwd looking for `.git/HEAD`; a `ref: refs/heads/…` line
   yields the branch name, otherwise the first 7 chars (detached HEAD); `---` when no repo is
   found.
@@ -36,7 +39,8 @@ rather than erroring. In bash this is `is_set` + `jq //` defaults; in PowerShell
 
 Two pipe-delimited lines wrapped in `─`×71 rules. Colors are ANSI SGR codes; the percent
 thresholds are **green ≤60 / yellow ≤85 / red >85**, applied to the context bar and each
-rate-limit percent. Countdowns, labels, and structural pipes stay white.
+rate-limit percent. The rate-limit countdowns get their own time-left coloring (see above);
+the session-elapsed time, labels, and structural pipes stay white.
 
 ## Self-install
 

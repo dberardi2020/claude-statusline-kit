@@ -112,6 +112,19 @@ color_for_pct() {
   fi
 }
 
+# Countdown colour — inverted from pct: more of the window still left = warmer.
+# Args: <seconds remaining> <window seconds>. Red = far from reset, green = imminent.
+#   >60% of the window left → red · 20–60% → yellow · <20% → green
+color_for_countdown() {
+  local s="$1" win="$2" rem
+  [ "$win" -le 0 ] && { printf '%s' "$WHITE"; return; }
+  rem=$(( 100 * s / win ))
+  if   [ "$rem" -gt 60 ]; then printf '%s' "$RED"
+  elif [ "$rem" -ge 20 ]; then printf '%s' "$YELLOW"
+  else                         printf '%s' "$GREEN"
+  fi
+}
+
 is_set() { [ -n "$1" ] && [ "$1" != "null" ]; }
 
 # ===========================================================================
@@ -137,12 +150,12 @@ fi
 
 now=${SL_NOW:-$(date +%s)}   # SL_NOW overrides the clock for deterministic tests
 
-# 10a. 5-hour window : ⏳ [Hh Mm] pct%   (countdown white, percent coloured)
+# 10a. 5-hour window : ⏳ [Hh Mm] pct%   (countdown coloured by time left, percent by usage)
 seg_five=""
 if is_set "$five_reset"; then
   s=$(( ${five_reset%.*} - now )); [ "$s" -lt 0 ] && s=0
   h=$(( s / 3600 )); m=$(( (s % 3600) / 60 ))
-  seg_five="⏳ ${WHITE}[${h}h${m}m]${RESET}"
+  seg_five="⏳ $(color_for_countdown "$s" 18000)[${h}h${m}m]${RESET}"
   if is_set "$five_pct"; then
     p=$(printf '%.0f' "$five_pct" 2>/dev/null); [ -z "$p" ] && p=0
     seg_five="${seg_five} $(color_for_pct "$p")${p}%${RESET}"
@@ -154,7 +167,7 @@ seg_week=""
 if is_set "$week_reset"; then
   s=$(( ${week_reset%.*} - now )); [ "$s" -lt 0 ] && s=0
   d=$(( s / 86400 )); h=$(( (s % 86400) / 3600 ))
-  seg_week="📅 ${WHITE}[${d}d${h}h]${RESET}"
+  seg_week="📅 $(color_for_countdown "$s" 604800)[${d}d${h}h]${RESET}"
   if is_set "$week_pct"; then
     p=$(printf '%.0f' "$week_pct" 2>/dev/null); [ -z "$p" ] && p=0
     seg_week="${seg_week} $(color_for_pct "$p")${p}%${RESET}"
