@@ -1,4 +1,4 @@
-param([switch]$Install, [switch]$Setup)
+﻿param([switch]$Install, [switch]$Setup)
 # ---------------------------------------------------------------------------
 # Claude Code statusline — PowerShell implementation (Windows, PS 5.1-safe).
 #
@@ -111,34 +111,42 @@ $colour = if ($pct -le 60) { $green } elseif ($pct -le 85) { $yellow } else { $r
 $parts += "$($colour)$($bar) $($pct)%$($reset)"
 
 # 10. Rate limits — ⏳ 5-hour window, 📅 7-day window : [reset-countdown] pct%
-$r15h_pct   = [int][double](Get-Safe $data @("rate_limits","five_hour","used_percentage") "0")
-$r17d_pct   = [int][double](Get-Safe $data @("rate_limits","seven_day","used_percentage") "0")
-$r15h_reset = [double](Get-Safe $data @("rate_limits","five_hour","resets_at") "0")
-$r17d_reset = [double](Get-Safe $data @("rate_limits","seven_day","resets_at") "0")
+# Absent fields drop their whole segment (parity with the bash `is_set` guard),
+# rather than rendering a misleading [0h0m] 0%.
+$r15h_pct   = Get-Safe $data @("rate_limits","five_hour","used_percentage")  $null
+$r17d_pct   = Get-Safe $data @("rate_limits","seven_day","used_percentage")  $null
+$r15h_reset = Get-Safe $data @("rate_limits","five_hour","resets_at")        $null
+$r17d_reset = Get-Safe $data @("rate_limits","seven_day","resets_at")        $null
 $now = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
 
-$diff5 = [math]::Max(0, [int]($r15h_reset - $now))
-$h5    = [int]($diff5 / 3600)
-$m5    = [int](($diff5 % 3600) / 60)
+if ($null -ne $r15h_reset -and $null -ne $r15h_pct) {
+    $pct5  = [int][double]$r15h_pct
+    $diff5 = [math]::Max(0, [int]([double]$r15h_reset - $now))
+    $h5    = [int]($diff5 / 3600)
+    $m5    = [int](($diff5 % 3600) / 60)
+    # Colour the window by its used-percentage (green ≤60, yellow ≤85, else red)
+    $c5h   = if ($pct5 -le 60) { $green } elseif ($pct5 -le 85) { $yellow } else { $red }
+    $parts += "$e_clock $($white)[${h5}h${m5}m]$($reset) $($c5h)$($pct5)%$($reset)"
+}
 
-$diff7 = [math]::Max(0, [int]($r17d_reset - $now))
-$d7    = [int]($diff7 / 86400)
-$h7    = [int](($diff7 % 86400) / 3600)
-
-# Colour each window by its used-percentage (green ≤60, yellow ≤85, else red)
-$c5h = if ($r15h_pct -le 60) { $green } elseif ($r15h_pct -le 85) { $yellow } else { $red }
-$c7d = if ($r17d_pct -le 60) { $green } elseif ($r17d_pct -le 85) { $yellow } else { $red }
-
-$parts += "$e_clock $($white)[${h5}h${m5}m]$($reset) $($c5h)$($r15h_pct)%$($reset)"
-$parts += "$e_cal $($white)[${d7}d${h7}h]$($reset) $($c7d)$($r17d_pct)%$($reset)"
+if ($null -ne $r17d_reset -and $null -ne $r17d_pct) {
+    $pct7  = [int][double]$r17d_pct
+    $diff7 = [math]::Max(0, [int]([double]$r17d_reset - $now))
+    $d7    = [int]($diff7 / 86400)
+    $h7    = [int](($diff7 % 86400) / 3600)
+    $c7d   = if ($pct7 -le 60) { $green } elseif ($pct7 -le 85) { $yellow } else { $red }
+    $parts += "$e_cal $($white)[${d7}d${h7}h]$($reset) $($c7d)$($pct7)%$($reset)"
+}
 
 # ===========================================================================
 # LINE 2 — cwd · branch · cost · elapsed
 # ===========================================================================
 $line2 = @()
 
-$cwd     = Get-Safe $data @("cwd") ""
-$cwdleaf = Split-Path -Leaf $cwd
+# Prefer workspace.current_dir, falling back to cwd (parity with the bash script).
+$cwd = Get-Safe $data @("workspace","current_dir") ""
+if (-not $cwd) { $cwd = Get-Safe $data @("cwd") "" }
+$cwdleaf = if ($cwd) { Split-Path -Leaf $cwd } else { "---" }
 $line2  += "$e_folder $($white)$cwdleaf$($reset)"
 
 # git branch of the cwd ("---" when not a repo)
