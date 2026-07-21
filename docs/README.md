@@ -9,4 +9,4 @@ Documentation for the **Claude Code Statusline Kit**.
 - **[decisions/](decisions/)** — architecture decision records (ADRs).
 
 The user-facing quickstart lives in the repo [README](../README.md); the styled one-page
-reference is [statusline.html](../statusline.html).
+reference is [statusline.html](statusline.html).

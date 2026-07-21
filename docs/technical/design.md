@@ -48,7 +48,10 @@ to install mode:
 3. Back up `~/.claude/settings.json` to `settings.json.bak-<timestamp>`.
 4. **Merge** a `statusLine` entry into the settings JSON — never overwrite the whole file, so
    existing keys are preserved. If the existing JSON is invalid, abort and leave it untouched
-   (the backup remains) with a manual snippet printed.
+   (the backup remains) with a manual snippet printed. If a *different* `statusLine` is
+   already configured, it is replaced but announced — the installer prints the previous
+   command and the backup path rather than clobbering it silently; a re-install of the kit's
+   own entry is reported as a refresh.
 5. Detect whether Claude Code appears installed (`claude` on PATH, or a pre-existing
    `~/.claude`); if not, still write the config but print a note pointing at the install page.
 

@@ -118,10 +118,12 @@ context row. The layout is two pipe-delimited lines wrapped in `─`×71 rules.
 - **Cross-platform parity** — both implementations read the same JSON schema and produce the
   same layout.
 - **Safe install** — `--install` backs up `settings.json` before editing and merges rather
-  than overwrites, so your existing keys are preserved.
+  than overwrites, so your existing keys are preserved. If you already have a different
+  `statusLine` configured, it's replaced (never silently) — the installer prints a warning
+  with the previous command and the backup path so you can restore it.
 
-The styled reference doc [`statusline.html`](statusline.html) carries the same content as
-this README in a browsable form.
+The styled reference doc [`docs/statusline.html`](docs/statusline.html) carries the same
+content as this README in a browsable form.
 
 ## Roadmap
 

@@ -28,12 +28,23 @@ if ($Install -or $Setup) {
     catch { Write-Error "settings.json isn't valid JSON — left untouched (backup: $bak)"; exit 1 }
     if ($null -eq $cfg) { $cfg = [pscustomobject]@{} }
     $exe = if ($PSVersionTable.PSVersion.Major -ge 6) { 'pwsh' } else { 'powershell' }
-    $sl  = [pscustomobject]@{ type = 'command'; command = "$exe -NoProfile -ExecutionPolicy Bypass -File `"$dest`"" }
+    $newCmd = "$exe -NoProfile -ExecutionPolicy Bypass -File `"$dest`""
+    # Note any statusLine already configured, so we never silently clobber it.
+    $existingCmd = if ($cfg.PSObject.Properties.Name -contains 'statusLine') { $cfg.statusLine.command } else { $null }
+    $sl  = [pscustomobject]@{ type = 'command'; command = $newCmd }
     if ($cfg.PSObject.Properties.Name -contains 'statusLine') { $cfg.statusLine = $sl }
     else { $cfg | Add-Member -NotePropertyName statusLine -NotePropertyValue $sl }
     ($cfg | ConvertTo-Json -Depth 20) | Set-Content -LiteralPath $settings -Encoding UTF8
     Write-Host "OK  statusline installed -> $dest"
     Write-Host "OK  settings.json wired (backup: $bak)"
+    if ($existingCmd -and $existingCmd -ne $newCmd) {
+        Write-Warning "Replaced an existing statusLine:"
+        Write-Warning "    was: $existingCmd"
+        Write-Warning "    now: $newCmd"
+        Write-Warning "  To keep the old one, restore $bak"
+    } elseif ($existingCmd) {
+        Write-Host "  (refreshed your existing Statusline Kit install)"
+    }
     if (-not (Get-Command claude -ErrorAction SilentlyContinue) -and -not $hadClaudeDir) {
         Write-Warning "Claude Code wasn't detected (no prior ~/.claude and 'claude' not on PATH)."
         Write-Warning "Config is in place; install Claude Code from https://claude.com/claude-code and the statusline appears once it runs."

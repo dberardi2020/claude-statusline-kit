@@ -27,6 +27,8 @@ if [ "$1" = "--install" ] || [ "$1" = "install" ] || [ "$1" = "--setup" ]; then
   chmod +x "$dest"
   settings="$claude_dir/settings.json"
   [ -f "$settings" ] || echo '{}' > "$settings"
+  # Note any statusLine already configured, so we never silently clobber it.
+  existing_cmd=$(jq -r '.statusLine.command // empty' "$settings" 2>/dev/null || true)
   bak="$settings.bak-$(date +%Y%m%d%H%M%S)"; cp "$settings" "$bak"
   tmp="$settings.tmp.$$"
   if jq --arg cmd "$dest" '.statusLine = {type:"command", command:$cmd}' "$settings" > "$tmp" 2>/dev/null; then
@@ -39,6 +41,14 @@ if [ "$1" = "--install" ] || [ "$1" = "install" ] || [ "$1" = "--setup" ]; then
   fi
   echo "✓ statusline installed → $dest"
   echo "✓ settings.json wired (backup: $bak)"
+  if [ -n "$existing_cmd" ] && [ "$existing_cmd" != "$dest" ]; then
+    echo "⚠ replaced an existing statusLine:" >&2
+    echo "    was: $existing_cmd" >&2
+    echo "    now: $dest" >&2
+    echo "  To keep the old one, restore $bak" >&2
+  elif [ -n "$existing_cmd" ]; then
+    echo "  (refreshed your existing Statusline Kit install)"
+  fi
   if ! command -v claude >/dev/null 2>&1 && [ "$had_claude_dir" -eq 0 ]; then
     echo "note: Claude Code wasn't detected (no prior ~/.claude and 'claude' not on PATH)." >&2
     echo "      Config is in place; install Claude Code from https://claude.com/claude-code" >&2
