@@ -102,13 +102,18 @@ $model = Get-Safe $data @("model","display_name") "?"
 $model = ($model -replace '\s*\([^)]*\)\s*', '').Trim()
 $parts += "$e_robot $($white)[$model]$($reset)"
 
-# 2 + 3. Context bar with % (combined, coloured)
-$pct    = [int](Get-Safe $data @("context_window","used_percentage") "0")
-$filled = [int]($pct * 10 / 100)
-$empty  = 10 - $filled
-$bar    = ($filled_char.ToString() * $filled) + ($empty_char.ToString() * $empty)
-$colour = if ($pct -le 60) { $green } elseif ($pct -le 85) { $yellow } else { $red }
-$parts += "$($colour)$($bar) $($pct)%$($reset)"
+# 2 + 3. Context bar with % — drops entirely when the field is absent (parity with bash).
+$ctxRaw = Get-Safe $data @("context_window","used_percentage") $null
+if ($null -ne $ctxRaw) {
+    $pct    = [int][math]::Round([double]$ctxRaw)     # banker's, matches bash printf %.0f
+    if ($pct -lt 0) { $pct = 0 }
+    $filled = [int][math]::Floor(($pct + 5) / 10)     # round half up, matches bash (p+5)/10
+    if ($filled -gt 10) { $filled = 10 }
+    $empty  = 10 - $filled
+    $bar    = ($filled_char.ToString() * $filled) + ($empty_char.ToString() * $empty)
+    $colour = if ($pct -le 60) { $green } elseif ($pct -le 85) { $yellow } else { $red }
+    $parts += "$($colour)$($bar) $($pct)%$($reset)"
+}
 
 # 10. Rate limits — ⏳ 5-hour window, 📅 7-day window : [reset-countdown] pct%
 # Absent fields drop their whole segment (parity with the bash `is_set` guard),
@@ -117,7 +122,8 @@ $r15h_pct   = Get-Safe $data @("rate_limits","five_hour","used_percentage")  $nu
 $r17d_pct   = Get-Safe $data @("rate_limits","seven_day","used_percentage")  $null
 $r15h_reset = Get-Safe $data @("rate_limits","five_hour","resets_at")        $null
 $r17d_reset = Get-Safe $data @("rate_limits","seven_day","resets_at")        $null
-$now = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+# $env:SL_NOW overrides the clock for deterministic tests
+$now = if ($env:SL_NOW) { [long]$env:SL_NOW } else { [DateTimeOffset]::UtcNow.ToUnixTimeSeconds() }
 
 if ($null -ne $r15h_reset -and $null -ne $r15h_pct) {
     $pct5  = [int][double]$r15h_pct

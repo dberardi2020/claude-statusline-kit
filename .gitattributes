@@ -1,0 +1,3 @@
+# Normalize to LF everywhere so a Windows checkout doesn't rewrite line endings
+# (which would corrupt the bash scripts and break golden comparisons).
+* text=auto eol=lf

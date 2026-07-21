@@ -68,4 +68,7 @@ Two implementations are maintained in behavioral lockstep:
 
 Both read the same JSON contract and emit the same layout. The reason there are two scripts
 rather than one shared runtime is recorded in
-[decisions/0001-two-native-shell-scripts-over-node.md](../decisions/0001-two-native-shell-scripts-over-node.md).
+[decisions/0001-two-native-shell-scripts-over-node.md](../decisions/0001-two-native-shell-scripts-over-node.md),
+and the parity is enforced by golden tests run on both platforms — see
+[testing.md](testing.md). Note that `statusline.ps1` carries a **UTF-8 BOM** on its first
+line; without it, Windows PowerShell 5.1 misparses the file. Do not strip it.

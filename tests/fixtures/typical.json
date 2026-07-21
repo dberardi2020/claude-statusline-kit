@@ -1,0 +1,1 @@
+{"model":{"display_name":"Opus 4.8 (1M context)"},"workspace":{"current_dir":"/work/Home"},"context_window":{"used_percentage":42},"rate_limits":{"five_hour":{"resets_at":1700007200,"used_percentage":15},"seven_day":{"resets_at":1700300000,"used_percentage":50}},"cost":{"total_cost_usd":2.1,"total_duration_ms":5400000}}

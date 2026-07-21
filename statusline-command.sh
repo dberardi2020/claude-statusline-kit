@@ -128,7 +128,7 @@ if is_set "$used_pct"; then
   seg_ctx="${c}${bar} ${p}%${RESET}"
 fi
 
-now=$(date +%s)
+now=${SL_NOW:-$(date +%s)}   # SL_NOW overrides the clock for deterministic tests
 
 # 10a. 5-hour window : ⏳ [Hh Mm] pct%   (countdown white, percent coloured)
 seg_five=""
