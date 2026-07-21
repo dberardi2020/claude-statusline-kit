@@ -151,16 +151,6 @@ Full docs live in [`docs/`](docs/README.md):
 The styled one-page reference is [`docs/statusline.html`](docs/statusline.html), which
 carries the same content as this README in a browsable form.
 
-## Repository layout
-
-```
-statusline-command.sh   # bash implementation (macOS/Linux; needs jq)
-statusline.ps1          # PowerShell implementation (Windows, PS 5.1-safe)
-docs/                   # product overview, technical design, testing, ADRs
-tests/                  # golden render fixtures + install-mode checks
-llms.txt                # summary + links for crawling agents
-```
-
 ## License
 
 [MIT](LICENSE) © Dimitri Berardi
