@@ -1,0 +1,99 @@
+<title>Statusline</title>
+<style>
+  :root{--bg:#f7f8fa;--card:#fff;--ink:#181820;--mut:#565666;--faint:#8a8a9a;--line:#e5e7ec;--a:#4577d1;
+    --g:#3f9d52;--y:#c79413;--r:#cf4a54;--sh:#5a9a2f;--ps:#4577d1;
+    --mono:"SF Mono",ui-monospace,Menlo,monospace;--sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}
+  @media (prefers-color-scheme:dark){:root{--bg:#080a0e;--card:#12141b;--ink:#e9ecf3;--mut:#a2a7b8;--faint:#6a6f80;--line:#232735}}
+  :root[data-theme=dark]{--bg:#080a0e;--card:#12141b;--ink:#e9ecf3;--mut:#a2a7b8;--faint:#6a6f80;--line:#232735}
+  :root[data-theme=light]{--bg:#f7f8fa;--card:#fff;--ink:#181820;--mut:#565666;--faint:#8a8a9a;--line:#e5e7ec}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.56;padding:44px 22px 90px}
+  .wrap{max-width:900px;margin:0 auto}
+  .kick{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--a);font-weight:700}
+  h1{font-size:27px;font-weight:760;letter-spacing:-.02em;margin:4px 0 4px}
+  .sub{color:var(--mut);margin:0 0 18px;font-size:15px}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 22px;font-family:var(--mono);font-size:11.5px}
+  .meta span{background:color-mix(in srgb,var(--a) 15%,transparent);color:var(--a);border-radius:6px;padding:3px 8px}
+  h2{font-size:19px;font-weight:730;letter-spacing:-.01em;margin:34px 0 6px;color:var(--a)}
+  h3{font-size:15px;font-weight:700;margin:20px 0 4px}
+  p{margin:9px 0}
+  .note{font-size:13px;color:var(--a);border:1px dashed color-mix(in srgb,var(--a) 55%,transparent);background:color-mix(in srgb,var(--a) 9%,transparent);border-radius:8px;padding:9px 13px;margin:14px 0}
+  code{font-family:var(--mono);font-size:.87em;background:color-mix(in srgb,var(--ink) 8%,transparent);padding:1px 5px;border-radius:4px}
+  pre{font-family:var(--mono);font-size:12px;line-height:1.5;background:var(--card);border:1px solid var(--line);border-radius:9px;padding:13px 15px;overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:13px;margin:11px 0}
+  .scroll{overflow-x:auto}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left;vertical-align:top}
+  th{background:color-mix(in srgb,var(--a) 8%,transparent);font-weight:650;white-space:nowrap}
+  ul,ol{margin:8px 0;padding-left:22px} li{margin:5px 0}
+  a{color:var(--a)}
+  .render{font-family:var(--mono);font-size:13px;line-height:1.7;background:#0c0d12;color:#e9ecf3;border-radius:10px;padding:16px 18px;overflow-x:auto;border:1px solid #232735}
+  .render .rule{color:#5b6070}
+  .g{color:#5fd07a}.y{color:#e8c14f}.r{color:#ff6b73}.w{color:#fff}.dim{color:#9aa0b3}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}
+  @media(max-width:640px){.two{grid-template-columns:1fr}}
+  .impl{border:1px solid var(--line);border-radius:11px;padding:14px 16px;background:var(--card)}
+  .impl.sh{border-top:3px solid var(--sh)} .impl.ps{border-top:3px solid var(--ps)}
+  .impl h3{margin:2px 0 6px}
+  .badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:5px;margin-left:6px;vertical-align:middle}
+  .live{background:color-mix(in srgb,var(--sh) 20%,transparent);color:var(--sh)}
+  .orig{background:color-mix(in srgb,var(--ps) 18%,transparent);color:var(--ps)}
+  .impl p{font-size:13px;color:var(--mut);margin:6px 0}
+  .lead{border-left:3px solid var(--a);padding-left:12px;color:var(--mut);font-size:14px;margin:8px 0 4px}
+</style>
+<div class="wrap">
+<div class="kick">Claude Code · Statusline Kit</div>
+<h1>Statusline</h1>
+<p class="sub">A two-line Claude Code statusline — <b>model · context · rate-limits</b>, then <b>cwd · branch · cost · elapsed</b> — bracketed by rules. Cross-platform: bash on macOS/Linux, PowerShell on Windows.</p>
+<div class="meta"><span>STYLE=B · segments 1,2,3,10</span><span>reads stdin JSON</span><span>bash + PowerShell</span></div>
+
+<div class="note">One statusline, two shells. It surfaces at a glance what Claude Code otherwise leaves implicit: <b>which model you're on, how full the context window is, how close each rate-limit window is to resetting, and the session's branch and cost.</b></div>
+
+<h2>What it renders</h2>
+<div class="render">
+<div><span class="dim">|</span> 🤖 <span class="w">[Opus 4.8]</span> <span class="dim">|</span> <span class="g">▓▓▓▓░░░░░░ 42%</span> <span class="dim">|</span> ⏳ <span class="w">[2h0m]</span> <span class="g">15%</span> <span class="dim">|</span> 📅 <span class="w">[3d11h]</span> <span class="g">50%</span> <span class="dim">|</span></div>
+<div class="rule">───────────────────────────────────────────────────────────────────────</div>
+<div><span class="dim">|</span> 📁 <span class="w">Home</span> <span class="dim">|</span> 🌿 <span class="w">master</span> <span class="dim">|</span> 💰 <span class="w">$2.10</span> <span class="dim">|</span> ⏱️ <span class="w">1h30m</span> <span class="dim">|</span></div>
+<div class="rule">───────────────────────────────────────────────────────────────────────</div>
+</div>
+<p style="font-size:12.5px;color:var(--faint)">Actual output of the live bash implementation (illustrative payload). Pipe-delimited; colours ANSI; bar cells <code>▓</code>/<code>░</code>; rule is <code>─</code>×71.</p>
+
+<h2>Two implementations</h2>
+<div class="two">
+<div class="impl sh"><h3>bash<span class="badge live">macOS · Linux</span></h3>
+<p><code>statusline-command.sh</code> — point <code>~/.claude/settings.json → statusLine</code> at it. macOS bash 3.2-safe; parses stdin with <code>jq</code>.</p>
+<p>Verified against 0% / mixed / high-usage payloads, and graceful degradation when rate-limit fields are absent.</p></div>
+<div class="impl ps"><h3>PowerShell<span class="badge orig">Windows</span></h3>
+<p><code>statusline.ps1</code> — the Windows implementation. PS 5.1-safe emoji via <code>ConvertFromUtf32</code>.</p>
+<p>Same JSON schema and STYLE=B layout as the bash version — one statusline in two shells.</p></div>
+</div>
+<p class="lead">Both read the same JSON schema and produce the same STYLE=B layout — they are one statusline in two shells. Pick the one that matches your platform, or install both if you work across machines.</p>
+
+<h2>Segments</h2>
+<div class="scroll"><table>
+<tr><th>#</th><th>Segment</th><th>Source field(s)</th><th>Format &amp; colour</th></tr>
+<tr><td>1</td><td>🤖 Model</td><td><code>model.display_name</code></td><td>Bracketed name with the "(1M context)" annotation stripped; white.</td></tr>
+<tr><td>2·3</td><td>Context bar + %</td><td><code>context_window.used_percentage</code></td><td>10-cell <code>▓</code>/<code>░</code> bar + percent. <span class="g">green ≤60</span> · <span class="y">yellow ≤85</span> · <span class="r">red &gt;85</span>.</td></tr>
+<tr><td rowspan="2">10</td><td>⏳ 5-hour limit</td><td><code>rate_limits.five_hour.resets_at</code> · <code>.used_percentage</code></td><td><code>[Hh Mm] pct%</code> — bracketed countdown (white) then percent (coloured, 60/85).</td></tr>
+<tr><td>📅 7-day limit</td><td><code>rate_limits.seven_day.resets_at</code> · <code>.used_percentage</code></td><td><code>[Dd Hh] pct%</code>.</td></tr>
+<tr><td>L2</td><td>📁 Directory</td><td><code>workspace.current_dir</code> / <code>cwd</code></td><td>Leaf of the working directory; white.</td></tr>
+<tr><td>L2</td><td>🌿 Branch</td><td><code>.git/HEAD</code> of the cwd (walked up)</td><td>Current branch, or <code>---</code> when not a repo.</td></tr>
+<tr><td>L2</td><td>💰 Cost</td><td><code>cost.total_cost_usd</code></td><td>Session cost, <code>$</code>F2.</td></tr>
+<tr><td>L2</td><td>⏱️ Elapsed</td><td><code>cost.total_duration_ms</code></td><td>Wall-clock → <code>Hh Mm</code> (drops the hour under 1h).</td></tr>
+</table></div>
+<p><span style="color:var(--faint)">Line 1 = wizard selections <b>1, 2, 3, 10</b> (model · context bar · context % · rate limits). Line 2 = the fixed context row. <code>STYLE=B</code> = two pipe-delimited lines wrapped in <code>─</code>×71 rules.</span></p>
+
+<h2>Shared behaviour</h2>
+<ul>
+<li><b>Safe field access:</b> every value read through a guarded helper (<code>Get-Safe</code> in PS, <code>is_set</code> + <code>jq //</code> defaults in bash) — a missing key degrades the line instead of erroring.</li>
+<li><b>Graceful segments:</b> when the rate-limit fields are absent, those segments drop out and line 1 is just model + context (verified in test).</li>
+<li><b>Colour policy:</b> green ≤60 / yellow ≤85 / red above, applied to the context bar and each rate-limit percent; countdowns and labels stay white.</li>
+<li><b>Rate-limit countdowns:</b> <code>resets_at</code> (unix seconds) minus now, floored at 0, split into d/h/m.</li>
+</ul>
+
+<h2>Deployment</h2>
+<ul>
+<li><b>macOS / Linux:</b> copy <code>statusline-command.sh</code> to <code>~/.claude/statusline-command.sh</code>, make it executable, and reference it from <code>~/.claude/settings.json → statusLine</code>. Back up any prior statusline first.</li>
+<li><b>Windows:</b> point <code>statusLine</code> at <code>statusline.ps1</code> via <code>pwsh</code>/<code>powershell</code>.</li>
+</ul>
+<p style="font-size:12.5px;color:var(--faint)">Requires <code>jq</code> for the bash implementation. See <code>README.md</code> for exact <code>settings.json</code> snippets.</p>
+</div>
