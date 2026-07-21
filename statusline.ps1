@@ -128,8 +128,8 @@ $now = if ($env:SL_NOW) { [long]$env:SL_NOW } else { [DateTimeOffset]::UtcNow.To
 if ($null -ne $r15h_reset -and $null -ne $r15h_pct) {
     $pct5  = [int][double]$r15h_pct
     $diff5 = [math]::Max(0, [int]([double]$r15h_reset - $now))
-    $h5    = [int]($diff5 / 3600)
-    $m5    = [int](($diff5 % 3600) / 60)
+    $h5    = [int][math]::Floor($diff5 / 3600)          # floor, matching bash integer division
+    $m5    = [int][math]::Floor(($diff5 % 3600) / 60)
     # Colour the window by its used-percentage (green ≤60, yellow ≤85, else red)
     $c5h   = if ($pct5 -le 60) { $green } elseif ($pct5 -le 85) { $yellow } else { $red }
     $parts += "$e_clock $($white)[${h5}h${m5}m]$($reset) $($c5h)$($pct5)%$($reset)"
@@ -138,8 +138,8 @@ if ($null -ne $r15h_reset -and $null -ne $r15h_pct) {
 if ($null -ne $r17d_reset -and $null -ne $r17d_pct) {
     $pct7  = [int][double]$r17d_pct
     $diff7 = [math]::Max(0, [int]([double]$r17d_reset - $now))
-    $d7    = [int]($diff7 / 86400)
-    $h7    = [int](($diff7 % 86400) / 3600)
+    $d7    = [int][math]::Floor($diff7 / 86400)         # floor, matching bash integer division
+    $h7    = [int][math]::Floor(($diff7 % 86400) / 3600)
     $c7d   = if ($pct7 -le 60) { $green } elseif ($pct7 -le 85) { $yellow } else { $red }
     $parts += "$e_cal $($white)[${d7}d${h7}h]$($reset) $($c7d)$($pct7)%$($reset)"
 }
@@ -171,8 +171,8 @@ $line2  += "$e_money $($white)$cost$($reset)"
 
 # elapsed — total_duration_ms → Hh Mm (drops the hour when < 1h)
 $elapsed = [double](Get-Safe $data @("cost","total_duration_ms") "0")
-$durH    = [int]($elapsed / 3600000)
-$durMin  = [int](($elapsed % 3600000) / 60000)
+$durH    = [int][math]::Floor($elapsed / 3600000)      # floor, matching bash integer division
+$durMin  = [int][math]::Floor(($elapsed % 3600000) / 60000)
 $dur     = if ($durH -gt 0) { "${durH}h${durMin}m" } else { "${durMin}m" }
 $line2  += "$e_timer $($white)$dur$($reset)"
 
