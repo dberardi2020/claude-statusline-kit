@@ -8,9 +8,6 @@ $here = Split-Path -Parent $PSCommandPath
 $repo = Split-Path -Parent $here
 $scriptPath = Join-Path $repo 'statusline.ps1'
 $exe = if ($PSVersionTable.PSVersion.Major -ge 6) { 'pwsh' } else { 'powershell' }
-# Force UTF-8 so Windows PowerShell 5.1 doesn't read the goldens / child output as ANSI.
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-$OutputEncoding = [System.Text.Encoding]::UTF8
 $env:SL_NOW = '1700000000'
 $pass = 0; $fail = 0
 Get-ChildItem (Join-Path $here 'fixtures') -Filter *.json | Sort-Object Name | ForEach-Object {
