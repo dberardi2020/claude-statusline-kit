@@ -1,11 +1,47 @@
-# statusline-wizard SELECTIONS=1,2,3,10 STYLE=B
+param([switch]$Install, [switch]$Setup)
 # ---------------------------------------------------------------------------
-# Claude Code status line (PowerShell / Windows). Reads Claude Code's JSON on
-# stdin and prints two pipe-delimited lines bracketed by rules:
+# Claude Code statusline — PowerShell implementation (Windows, PS 5.1-safe).
+#
+# Two modes:
+#   • render  — Claude Code pipes its session JSON on stdin; prints the statusline.
+#   • install — `statusline.ps1 -Install` copies this script into ~/.claude and
+#               wires it into ~/.claude/settings.json (backs up first).
+#
+# Rendered output — two pipe-delimited lines bracketed by rules:
 #   | 🤖 model | <bar> pct% | ⏳ [5h reset] pct% | 📅 [7d reset] pct% |
 #   | 📁 dir | 🌿 branch | 💰 cost | ⏱️ elapsed |
-# PS 5.1-safe (astral-plane emoji via ConvertFromUtf32).
+# (Astral-plane emoji built via ConvertFromUtf32 to stay PS 5.1-safe.)
 # ---------------------------------------------------------------------------
+
+if ($Install -or $Setup) {
+    $ErrorActionPreference = 'Stop'
+    $claudeDir = Join-Path $HOME '.claude'
+    $hadClaudeDir = Test-Path $claudeDir
+    if (-not $hadClaudeDir) { New-Item -ItemType Directory -Path $claudeDir | Out-Null }
+    $dest = Join-Path $claudeDir 'statusline.ps1'
+    if ($PSCommandPath -ne $dest) { Copy-Item -LiteralPath $PSCommandPath -Destination $dest -Force }
+    $settings = Join-Path $claudeDir 'settings.json'
+    if (-not (Test-Path $settings)) { '{}' | Set-Content -LiteralPath $settings -Encoding UTF8 }
+    $bak = "$settings.bak-" + (Get-Date -Format 'yyyyMMddHHmmss')
+    Copy-Item -LiteralPath $settings -Destination $bak -Force
+    try { $cfg = (Get-Content -Raw -LiteralPath $settings | ConvertFrom-Json) }
+    catch { Write-Error "settings.json isn't valid JSON — left untouched (backup: $bak)"; exit 1 }
+    if ($null -eq $cfg) { $cfg = [pscustomobject]@{} }
+    $exe = if ($PSVersionTable.PSVersion.Major -ge 6) { 'pwsh' } else { 'powershell' }
+    $sl  = [pscustomobject]@{ type = 'command'; command = "$exe -NoProfile -ExecutionPolicy Bypass -File `"$dest`"" }
+    if ($cfg.PSObject.Properties.Name -contains 'statusLine') { $cfg.statusLine = $sl }
+    else { $cfg | Add-Member -NotePropertyName statusLine -NotePropertyValue $sl }
+    ($cfg | ConvertTo-Json -Depth 20) | Set-Content -LiteralPath $settings -Encoding UTF8
+    Write-Host "OK  statusline installed -> $dest"
+    Write-Host "OK  settings.json wired (backup: $bak)"
+    if (-not (Get-Command claude -ErrorAction SilentlyContinue) -and -not $hadClaudeDir) {
+        Write-Warning "Claude Code wasn't detected (no prior ~/.claude and 'claude' not on PATH)."
+        Write-Warning "Config is in place; install Claude Code from https://claude.com/claude-code and the statusline appears once it runs."
+    } else {
+        Write-Host "    Restart Claude Code or open a new session to see it."
+    }
+    exit 0
+}
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $raw  = [Console]::In.ReadToEnd()
@@ -46,7 +82,7 @@ $e_money  = [char]::ConvertFromUtf32(0x1F4B0)   # 💰 cost
 $e_timer  = "$([char]0x23F1)$([char]0xFE0F)"    # ⏱️ elapsed (stopwatch)
 
 # ===========================================================================
-# LINE 1 — selections 1, 2, 3, 10
+# LINE 1 — model · context bar+% · 5h limit · 7d limit
 # ===========================================================================
 $parts = @()
 
@@ -116,7 +152,7 @@ $dur     = if ($durH -gt 0) { "${durH}h${durMin}m" } else { "${durMin}m" }
 $line2  += "$e_timer $($white)$dur$($reset)"
 
 # ===========================================================================
-# RENDER — STYLE=B : two pipe-delimited lines bracketed by horizontal rules
+# RENDER — two pipe-delimited lines bracketed by horizontal rules
 # ===========================================================================
 $rule = $white + ([string][char]0x2500 * 71) + $reset            # ── × 71
 

@@ -44,7 +44,7 @@
 <div class="kick">Claude Code · Statusline Kit</div>
 <h1>Statusline</h1>
 <p class="sub">A two-line Claude Code statusline — <b>model · context · rate-limits</b>, then <b>cwd · branch · cost · elapsed</b> — bracketed by rules. Cross-platform: bash on macOS/Linux, PowerShell on Windows.</p>
-<div class="meta"><span>STYLE=B · segments 1,2,3,10</span><span>reads stdin JSON</span><span>bash + PowerShell</span></div>
+<div class="meta"><span>two-line layout</span><span>reads stdin JSON</span><span>bash + PowerShell</span></div>
 
 <div class="note">One statusline, two shells. It surfaces at a glance what Claude Code otherwise leaves implicit: <b>which model you're on, how full the context window is, how close each rate-limit window is to resetting, and the session's branch and cost.</b></div>
 
@@ -60,27 +60,27 @@
 <h2>Two implementations</h2>
 <div class="two">
 <div class="impl sh"><h3>bash<span class="badge live">macOS · Linux</span></h3>
-<p><code>statusline-command.sh</code> — point <code>~/.claude/settings.json → statusLine</code> at it. macOS bash 3.2-safe; parses stdin with <code>jq</code>.</p>
+<p><code>statusline-command.sh</code> — self-installing: <code>bash statusline-command.sh --install</code> wires it into <code>~/.claude/settings.json</code>. macOS bash 3.2-safe; parses stdin with <code>jq</code>.</p>
 <p>Verified against 0% / mixed / high-usage payloads, and graceful degradation when rate-limit fields are absent.</p></div>
 <div class="impl ps"><h3>PowerShell<span class="badge orig">Windows</span></h3>
-<p><code>statusline.ps1</code> — the Windows implementation. PS 5.1-safe emoji via <code>ConvertFromUtf32</code>.</p>
-<p>Same JSON schema and STYLE=B layout as the bash version — one statusline in two shells.</p></div>
+<p><code>statusline.ps1</code> — the Windows implementation, self-installing via <code>./statusline.ps1 -Install</code>. PS 5.1-safe emoji via <code>ConvertFromUtf32</code>.</p>
+<p>Same JSON schema and layout as the bash version — one statusline in two shells.</p></div>
 </div>
-<p class="lead">Both read the same JSON schema and produce the same STYLE=B layout — they are one statusline in two shells. Pick the one that matches your platform, or install both if you work across machines.</p>
+<p class="lead">Both read the same JSON schema and produce the same layout — one statusline in two shells. Pick the one that matches your platform, or install both if you work across machines.</p>
 
 <h2>Segments</h2>
 <div class="scroll"><table>
 <tr><th>#</th><th>Segment</th><th>Source field(s)</th><th>Format &amp; colour</th></tr>
 <tr><td>1</td><td>🤖 Model</td><td><code>model.display_name</code></td><td>Bracketed name with the "(1M context)" annotation stripped; white.</td></tr>
 <tr><td>2·3</td><td>Context bar + %</td><td><code>context_window.used_percentage</code></td><td>10-cell <code>▓</code>/<code>░</code> bar + percent. <span class="g">green ≤60</span> · <span class="y">yellow ≤85</span> · <span class="r">red &gt;85</span>.</td></tr>
-<tr><td rowspan="2">10</td><td>⏳ 5-hour limit</td><td><code>rate_limits.five_hour.resets_at</code> · <code>.used_percentage</code></td><td><code>[Hh Mm] pct%</code> — bracketed countdown (white) then percent (coloured, 60/85).</td></tr>
-<tr><td>📅 7-day limit</td><td><code>rate_limits.seven_day.resets_at</code> · <code>.used_percentage</code></td><td><code>[Dd Hh] pct%</code>.</td></tr>
-<tr><td>L2</td><td>📁 Directory</td><td><code>workspace.current_dir</code> / <code>cwd</code></td><td>Leaf of the working directory; white.</td></tr>
-<tr><td>L2</td><td>🌿 Branch</td><td><code>.git/HEAD</code> of the cwd (walked up)</td><td>Current branch, or <code>---</code> when not a repo.</td></tr>
-<tr><td>L2</td><td>💰 Cost</td><td><code>cost.total_cost_usd</code></td><td>Session cost, <code>$</code>F2.</td></tr>
-<tr><td>L2</td><td>⏱️ Elapsed</td><td><code>cost.total_duration_ms</code></td><td>Wall-clock → <code>Hh Mm</code> (drops the hour under 1h).</td></tr>
+<tr><td>4</td><td>⏳ 5-hour limit</td><td><code>rate_limits.five_hour.resets_at</code> · <code>.used_percentage</code></td><td><code>[Hh Mm] pct%</code> — bracketed countdown (white) then percent (coloured, 60/85).</td></tr>
+<tr><td>5</td><td>📅 7-day limit</td><td><code>rate_limits.seven_day.resets_at</code> · <code>.used_percentage</code></td><td><code>[Dd Hh] pct%</code>.</td></tr>
+<tr><td>6</td><td>📁 Directory</td><td><code>workspace.current_dir</code> / <code>cwd</code></td><td>Leaf of the working directory; white.</td></tr>
+<tr><td>7</td><td>🌿 Branch</td><td><code>.git/HEAD</code> of the cwd (walked up)</td><td>Current branch, or <code>---</code> when not a repo.</td></tr>
+<tr><td>8</td><td>💰 Cost</td><td><code>cost.total_cost_usd</code></td><td>Session cost, <code>$</code>F2.</td></tr>
+<tr><td>9</td><td>⏱️ Elapsed</td><td><code>cost.total_duration_ms</code></td><td>Wall-clock → <code>Hh Mm</code> (drops the hour under 1h).</td></tr>
 </table></div>
-<p><span style="color:var(--faint)">Line 1 = wizard selections <b>1, 2, 3, 10</b> (model · context bar · context % · rate limits). Line 2 = the fixed context row. <code>STYLE=B</code> = two pipe-delimited lines wrapped in <code>─</code>×71 rules.</span></p>
+<p><span style="color:var(--faint)">Line 1 = model · context bar · context % · the two rate-limit windows. Line 2 = the fixed context row (dir · branch · cost · elapsed). The layout is two pipe-delimited lines wrapped in <code>─</code>×71 rules.</span></p>
 
 <h2>Shared behaviour</h2>
 <ul>
@@ -90,10 +90,11 @@
 <li><b>Rate-limit countdowns:</b> <code>resets_at</code> (unix seconds) minus now, floored at 0, split into d/h/m.</li>
 </ul>
 
-<h2>Deployment</h2>
+<h2>Install</h2>
+<p>Each script is self-installing — one download, one command. It copies itself into <code>~/.claude/</code> and merges a <code>statusLine</code> entry into <code>~/.claude/settings.json</code>, backing the file up first and preserving your other settings.</p>
 <ul>
-<li><b>macOS / Linux:</b> copy <code>statusline-command.sh</code> to <code>~/.claude/statusline-command.sh</code>, make it executable, and reference it from <code>~/.claude/settings.json → statusLine</code>. Back up any prior statusline first.</li>
-<li><b>Windows:</b> point <code>statusLine</code> at <code>statusline.ps1</code> via <code>pwsh</code>/<code>powershell</code>.</li>
+<li><b>macOS / Linux:</b> <code>bash statusline-command.sh --install</code> (requires <code>jq</code>).</li>
+<li><b>Windows:</b> <code>./statusline.ps1 -Install</code>.</li>
 </ul>
-<p style="font-size:12.5px;color:var(--faint)">Requires <code>jq</code> for the bash implementation. See <code>README.md</code> for exact <code>settings.json</code> snippets.</p>
+<p style="font-size:12.5px;color:var(--faint)">See <code>README.md</code> for the one-line download commands, a copy-paste prompt to hand your coding agent, and the manual <code>settings.json</code> snippets.</p>
 </div>

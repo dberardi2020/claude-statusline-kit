@@ -1,12 +1,60 @@
 #!/usr/bin/env bash
-# Claude Code status line — STYLE=B (statusline-wizard SELECTIONS=1,2,3,10).
-# bash implementation, macOS bash 3.2 safe.
+# Claude Code statusline — bash implementation (macOS/Linux, bash 3.2-safe).
 #
-# Reads Claude Code's JSON from stdin; prints four lines:
+# Two modes:
+#   • render  — Claude Code pipes its session JSON on stdin; prints the statusline.
+#   • install — `bash statusline-command.sh --install` copies this script into
+#               ~/.claude and wires it into ~/.claude/settings.json (backs up first).
+#
+# Rendered output — two pipe-delimited lines bracketed by rules:
 #   ───────────────────────────────────────────────────────────────────────
 #   | 🤖 [model] | <bar> pct% | ⏳ [5h reset] pct% | 📅 [7d reset] pct% |
 #   | 📁 dir | 🌿 branch | 💰 $cost | ⏱️ elapsed |
 #   ───────────────────────────────────────────────────────────────────────
+
+# --- install mode ----------------------------------------------------------
+if [ "$1" = "--install" ] || [ "$1" = "install" ] || [ "$1" = "--setup" ]; then
+  set -e
+  src="${BASH_SOURCE[0]}"
+  case "$src" in /*) : ;; *) src="$(cd "$(dirname "$src")" && pwd)/$(basename "$src")" ;; esac
+  [ -f "$src" ] || { echo "install: run this as a file, not via a pipe." >&2; exit 1; }
+  command -v jq >/dev/null 2>&1 || { echo "install: 'jq' is required (e.g. 'brew install jq' / 'apt install jq')." >&2; exit 1; }
+  claude_dir="$HOME/.claude"
+  had_claude_dir=0; [ -d "$claude_dir" ] && had_claude_dir=1
+  mkdir -p "$claude_dir"
+  dest="$claude_dir/statusline-command.sh"
+  [ "$src" = "$dest" ] || cp "$src" "$dest"
+  chmod +x "$dest"
+  settings="$claude_dir/settings.json"
+  [ -f "$settings" ] || echo '{}' > "$settings"
+  bak="$settings.bak-$(date +%Y%m%d%H%M%S)"; cp "$settings" "$bak"
+  tmp="$settings.tmp.$$"
+  if jq --arg cmd "$dest" '.statusLine = {type:"command", command:$cmd}' "$settings" > "$tmp" 2>/dev/null; then
+    mv "$tmp" "$settings"
+  else
+    rm -f "$tmp"
+    echo "install: settings.json isn't valid JSON — left untouched (backup: $bak)." >&2
+    echo "Add manually:  \"statusLine\": { \"type\": \"command\", \"command\": \"$dest\" }" >&2
+    exit 1
+  fi
+  echo "✓ statusline installed → $dest"
+  echo "✓ settings.json wired (backup: $bak)"
+  if ! command -v claude >/dev/null 2>&1 && [ "$had_claude_dir" -eq 0 ]; then
+    echo "note: Claude Code wasn't detected (no prior ~/.claude and 'claude' not on PATH)." >&2
+    echo "      Config is in place; install Claude Code from https://claude.com/claude-code" >&2
+    echo "      and the statusline appears once it runs." >&2
+  else
+    echo "  Restart Claude Code or open a new session to see it."
+  fi
+  exit 0
+fi
+
+# A curious run with no args and no piped JSON would otherwise hang on `cat`.
+if [ -t 0 ] && [ "$#" -eq 0 ]; then
+  echo "This is a Claude Code statusline command; it expects session JSON on stdin." >&2
+  echo "To install it:  bash \"$0\" --install" >&2
+  exit 0
+fi
 
 input=$(cat)
 
@@ -135,7 +183,7 @@ fi
 seg_timer="⏱️ ${WHITE}${dur}${RESET}"
 
 # ===========================================================================
-# RENDER — STYLE=B : two pipe-delimited lines bracketed by ── rules
+# RENDER — two pipe-delimited lines bracketed by ── rules
 # ===========================================================================
 rule="${WHITE}"; i=0; while [ "$i" -lt 71 ]; do rule="${rule}─"; i=$((i+1)); done; rule="${rule}${RESET}"
 

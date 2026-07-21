@@ -1,0 +1,25 @@
+# Claude Code Statusline Kit
+
+> A two-line, cross-platform statusline for Claude Code (Anthropic's CLI coding agent). It
+> shows the current model, context-window fill, the 5-hour and 7-day rate-limit windows, the
+> working directory, git branch, session cost, and elapsed time. Two self-installing
+> implementations — bash (macOS/Linux) and PowerShell (Windows) — each read Claude Code's
+> statusLine JSON on stdin and print the same color-coded layout.
+
+## Install
+
+- macOS/Linux: download `statusline-command.sh`, then run `bash statusline-command.sh --install` (requires `jq`).
+- Windows: download `statusline.ps1`, then run `./statusline.ps1 -Install`.
+- The installer copies the script into `~/.claude/` and merges a `statusLine` entry into `~/.claude/settings.json`, backing that file up first and preserving other settings.
+
+## Source
+
+- [statusline-command.sh (bash)](https://raw.githubusercontent.com/dberardi2020/claude-statusline-kit/main/statusline-command.sh)
+- [statusline.ps1 (PowerShell)](https://raw.githubusercontent.com/dberardi2020/claude-statusline-kit/main/statusline.ps1)
+
+## Docs
+
+- [README — quickstart, install, segment reference](https://github.com/dberardi2020/claude-statusline-kit/blob/main/README.md)
+- [Product overview](https://github.com/dberardi2020/claude-statusline-kit/blob/main/docs/product/overview.md)
+- [Technical design — JSON contract, segment computation, self-install](https://github.com/dberardi2020/claude-statusline-kit/blob/main/docs/technical/design.md)
+- [Decision: two native-shell scripts over Node](https://github.com/dberardi2020/claude-statusline-kit/blob/main/docs/decisions/0001-two-native-shell-scripts-over-node.md)
