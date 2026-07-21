@@ -36,9 +36,17 @@ Exercises the settings.json merge, backup creation, the existing-statusLine clas
 and the invalid-JSON abort — each against a throwaway `HOME`, so your real `~/.claude` is
 never touched.
 
+> **Known limitation (Git Bash on Windows):** one assertion, *re-install does not warn*, is
+> **skipped** there (you'll see 7 passed + 1 skipped). `jq --arg cmd "$dest"` goes through
+> MSYS path translation, so `settings.json` stores a `C:/…` path while `$dest` stays `/…`,
+> and the re-read never matches — a refresh always warns. bash-on-Windows is an unsupported
+> configuration (Windows users run `statusline.ps1`); see
+> [../docs/technical/testing.md](../docs/technical/testing.md).
+
 ## CI
 
 `.github/workflows/tests.yml` runs `run.sh` + `install.sh` on Linux and `run.ps1` on Windows
-(both PowerShell 7 and Windows PowerShell 5.1) against the same goldens — turning
-cross-platform parity into a checked invariant and giving the PowerShell implementation real
-Windows coverage. See [../docs/technical/testing.md](../docs/technical/testing.md).
+(both PowerShell 7 and Windows PowerShell 5.1, under the OEM console codepage `chcp 437`)
+against the same goldens — turning cross-platform parity into a checked invariant and giving
+the PowerShell implementation real Windows coverage. See
+[../docs/technical/testing.md](../docs/technical/testing.md).

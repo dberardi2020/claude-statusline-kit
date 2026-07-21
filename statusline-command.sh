@@ -28,7 +28,10 @@ if [ "$1" = "--install" ] || [ "$1" = "install" ] || [ "$1" = "--setup" ]; then
   settings="$claude_dir/settings.json"
   [ -f "$settings" ] || echo '{}' > "$settings"
   # Note any statusLine already configured, so we never silently clobber it.
-  existing_cmd=$(jq -r '.statusLine.command // empty' "$settings" 2>/dev/null || true)
+  # tr -d '\r' for the same reason as the render path: a Windows jq.exe emits CRLF,
+  # and the stray CR would make our own entry compare unequal to $dest below --
+  # so a plain refresh would warn as though it were clobbering a foreign statusline.
+  existing_cmd=$(jq -r '.statusLine.command // empty' "$settings" 2>/dev/null | tr -d '\r' || true)
   bak="$settings.bak-$(date +%Y%m%d%H%M%S)"; cp "$settings" "$bak"
   tmp="$settings.tmp.$$"
   if jq --arg cmd "$dest" '.statusLine = {type:"command", command:$cmd}' "$settings" > "$tmp" 2>/dev/null; then
@@ -89,7 +92,11 @@ input=$(cat)
   (.rate_limits.seven_day.used_percentage  // "" | tostring),
   (.cost.total_cost_usd                    // "" | tostring),
   (.cost.total_duration_ms                 // "" | tostring)
-')
+' | tr -d '\r')
+# tr -d '\r': a native Windows jq.exe (e.g. Chocolatey's) terminates lines with
+# CRLF, so under Git Bash every value above arrives with a trailing CR -- enough to
+# break the arithmetic ("5400000\r - now") and smear stray CRs through the output.
+# No-op on macOS/Linux, where jq already emits LF.
 
 # --- Colours ---
 GREEN=$'\033[32m'; YELLOW=$'\033[33m'; RED=$'\033[31m'
