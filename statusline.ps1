@@ -166,13 +166,37 @@ if (-not $cwd) { $cwd = Get-Safe $data @("cwd") "" }
 $cwdleaf = if ($cwd) { Split-Path -Leaf $cwd } else { "---" }
 $line2  += "$e_folder $($white)$cwdleaf$($reset)"
 
-# git branch of the cwd ("---" when not a repo)
+# git branch: walk up for .git/HEAD, exactly as the bash script does ("---" when no
+# repo). Reading the file rather than shelling out to `git` keeps the two
+# implementations in lockstep -- `git branch --show-current` prints nothing on a
+# detached HEAD (where bash shows the short SHA) and would add a git-on-PATH
+# dependency the bash path doesn't have.
+$branchlabel = ""
 if ($cwd) {
-    $branch = (& git -C $cwd branch --show-current 2>$null)
-    $branchlabel = if ($branch) { $branch.Trim() } else { "---" }
-} else {
-    $branchlabel = "---"
+    $probe = $cwd
+    while ($probe) {
+        $headFile = Join-Path $probe '.git/HEAD'
+        if (Test-Path -LiteralPath $headFile -PathType Leaf) {
+            $head = (Get-Content -Raw -LiteralPath $headFile -ErrorAction SilentlyContinue)
+            if ($null -ne $head) {
+                $head = $head.Trim()
+                if ($head.StartsWith('ref:')) {
+                    # strip "ref: refs/heads/" like bash's ${head_content#ref: refs/heads/}
+                    $branchlabel = $head -replace '^ref: refs/heads/', ''
+                } elseif ($head.Length -ge 7) {
+                    $branchlabel = $head.Substring(0, 7)
+                } else {
+                    $branchlabel = $head
+                }
+            }
+            break
+        }
+        $parent = Split-Path -Parent $probe
+        if (-not $parent -or $parent -eq $probe) { break }
+        $probe = $parent
+    }
 }
+if (-not $branchlabel) { $branchlabel = "---" }
 $line2 += "$e_leaf $($white)$branchlabel$($reset)"
 
 # cost — total_cost_usd, formatted $F2

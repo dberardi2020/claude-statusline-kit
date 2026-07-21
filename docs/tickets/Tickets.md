@@ -17,6 +17,7 @@ _(none)_
 | CSK-0003 | Feature | P3 | tooling | **Builder / wizard** — pick segments and a layout, generate the script (the roadmap's catalogue + generator). The self-install path's safe `settings.json` merge is the seed to reuse. |
 | CSK-0004 | Chore | P3 | tests | **Git-Bash + Windows-jq CI leg** — CI runs bash only on Linux, so the Windows-`jq.exe` CRLF path (guarded by the `tr -d '\r'` defensive strip) has no coverage. A render-only Git-Bash + Chocolatey-jq job would lock it. Tests an unsupported config (Windows users run `statusline.ps1`), so low priority. |
 | CSK-0005 | Chore | P3 | tests | **No local macOS PowerShell coverage** — there's no `pwsh` on the Mac, so `run.ps1` is verified only in CI and on the PC. Either install PowerShell on the Mac for a local parity run, or accept CI as the source of truth for the PS leg. |
+| CSK-0006 | Bug | P3 | compat | **`statusline-command.sh` hangs on a Windows path outside a repo** — the branch walk is `while [ -n "$git_dir" ] && [ "$git_dir" != "/" ]`, but on a Windows-style cwd `dirname` goes `C:/Users` → `C:` → `.` → `.` and never reaches `/`, so the loop never terminates (confirmed: `exit=124` under `timeout`, no output). Unix is unaffected — `dirname` there reaches `/` and the loop exits (verified against a POSIX path). Only reachable under Git Bash on Windows, the config the docs already declare unsupported (Windows users run `statusline.ps1`), hence P3. Fix would be a depth cap or a `[ "$git_dir" != "$parent" ]` guard on the walk. Same unsupported-config family as **CSK-0004**. |
 
 ## Blocked
 
