@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Claude Code Statusline Kit — Tickets</title><style>
+:root{--bg:#f7f8fa;--fg:#181820;--muted:#565666;--line:#e5e7ec;--code-bg:#eef0f4;--accent:#4577d1;--link:#3a67b8}
+@media(prefers-color-scheme:dark){:root{--bg:#080a0e;--fg:#e9ecf3;--muted:#a2a7b8;--line:#232735;--code-bg:#12141b;--accent:#5b8de0;--link:#6f9ae6}}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding:64px 28px 120px}
+h1{font-size:2rem;line-height:1.2;margin:0 0 .3em;letter-spacing:-.02em}
+h2{font-size:1.35rem;margin:2.2em 0 .5em;padding-bottom:.25em;border-bottom:1px solid var(--line)}
+h3{font-size:1.08rem;margin:1.8em 0 .4em}
+p{margin:.7em 0}
+a{color:var(--link);text-decoration:none;border-bottom:1px solid transparent}
+a:hover{border-bottom-color:var(--link)}
+code{background:var(--code-bg);padding:.12em .4em;border-radius:4px;font:.86em/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code-bg);padding:16px 18px;border-radius:8px;overflow-x:auto;border:1px solid var(--line)}
+pre code{background:none;padding:0;font-size:.85em}
+ul,ol{padding-left:1.4em;margin:.7em 0}
+li{margin:.3em 0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:var(--code-bg);border-radius:0 6px 6px 0;color:var(--muted)}
+blockquote strong{color:var(--fg)}
+table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:.92em;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:.5em .7em;text-align:left;vertical-align:top}
+th{background:var(--code-bg);font-weight:600}
+hr{border:none;border-top:1px solid var(--line);margin:2em 0}
+strong{font-weight:650}
+</style></head><body><main class="wrap">
+<h1>Claude Code Statusline Kit — Tickets</h1>
+<p>A lightweight backlog — persist and review open items without a ticketing system. This <code>.md</code> is the source of truth; regenerate the styled render with <code>python docs/render.py docs/tickets/Tickets.md</code>.</p>
+<h2>In progress</h2>
+<p>_(none)_</p>
+<h2>Open</h2>
+<table><thead><tr><th>ID</th><th>Type</th><th>Pri</th><th>Area</th><th>Title</th></tr></thead><tbody><tr><td>CSK-0001</td><td>Feature</td><td>P2</td><td>tooling</td><td><strong>Family of management skills/commands</strong> — <code>install</code>, <code>update</code>, <code>reinstall</code>, <code>uninstall</code>, <code>repair</code>. Today setup is a single <code>--install</code> / <code>-Install</code> self-install; there's no first-class way to <em>update</em> an installed copy (pull + re-copy into <code>~/.claude</code>), <em>repair</em> a broken config (re-point <code>statusLine</code>, fix a mangled <code>settings.json</code>, restore from a <code>.bak</code>), or cleanly <em>uninstall</em> (remove the <code>statusLine</code> entry, the script, and backups). A discoverable family — Claude Code skills and/or CLI verbs — would cover the whole lifecycle. Mirrors Terminal Launcher <strong>TLA-0020</strong>.</td></tr><tr><td>CSK-0002</td><td>Feature</td><td>P3</td><td>ux</td><td><strong>Truecolor status colours</strong> — green/yellow/red use palette-indexed ANSI (32/33/31), which each terminal maps to its own RGB, so the kit renders as different shades across terminals (notably muted on Windows Terminal's default theme) next to the pinned bright-white. Switch to 24-bit truecolor (<code>\033[38;2;R;G;Bm</code>) with the exact hues from <code>statusline.html</code> (green <code>#3f9d52</code>, yellow <code>#c79413</code>, red <code>#cf4a54</code>) so both terminals — and the HTML doc — match. Add a truecolor golden/fixture to keep parity.</td></tr><tr><td>CSK-0003</td><td>Feature</td><td>P3</td><td>tooling</td><td><strong>Builder / wizard</strong> — pick segments and a layout, generate the script (the roadmap's catalogue + generator). The self-install path's safe <code>settings.json</code> merge is the seed to reuse.</td></tr><tr><td>CSK-0004</td><td>Chore</td><td>P3</td><td>tests</td><td><strong>Git-Bash + Windows-jq CI leg</strong> — CI runs bash only on Linux, so the Windows-<code>jq.exe</code> CRLF path (guarded by the <code>tr -d '\r'</code> defensive strip) has no coverage. A render-only Git-Bash + Chocolatey-jq job would lock it. Tests an unsupported config (Windows users run <code>statusline.ps1</code>), so low priority.</td></tr><tr><td>CSK-0005</td><td>Chore</td><td>P3</td><td>tests</td><td><strong>No local macOS PowerShell coverage</strong> — there's no <code>pwsh</code> on the Mac, so <code>run.ps1</code> is verified only in CI and on the PC. Either install PowerShell on the Mac for a local parity run, or accept CI as the source of truth for the PS leg.</td></tr></tbody></table>
+<h2>Blocked</h2>
+<p>_(none)_</p>
+<h2>Done</h2>
+<p>_(none)_</p>
+</main></body></html>
