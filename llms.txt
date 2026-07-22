@@ -20,6 +20,10 @@
 ## Docs
 
 - [README — quickstart, install, segment reference](https://github.com/dberardi2020/claude-statusline-kit/blob/main/README.md)
+- [Docs index](https://github.com/dberardi2020/claude-statusline-kit/blob/main/docs/README.md)
 - [Product overview](https://github.com/dberardi2020/claude-statusline-kit/blob/main/docs/product/overview.md)
-- [Technical design — JSON contract, segment computation, self-install](https://github.com/dberardi2020/claude-statusline-kit/blob/main/docs/technical/design.md)
+- [User guide — install, segment reference, troubleshooting](https://github.com/dberardi2020/claude-statusline-kit/blob/main/docs/product/user-guide.md)
+- [Rendering spec — layout, per-segment computation, color model](https://github.com/dberardi2020/claude-statusline-kit/blob/main/docs/technical/rendering.md)
+- [Data model — the session JSON contract and settings.json](https://github.com/dberardi2020/claude-statusline-kit/blob/main/docs/technical/data-model-and-config.md)
+- [Install & distribution — the self-install mechanism](https://github.com/dberardi2020/claude-statusline-kit/blob/main/docs/technical/install-and-distribution.md)
 - [Decision: two native-shell scripts over Node](https://github.com/dberardi2020/claude-statusline-kit/blob/main/docs/decisions/0001-two-native-shell-scripts-over-node.md)

@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>User Guide</title><style>
+:root{--bg:#f7f8fa;--fg:#181820;--muted:#565666;--line:#e5e7ec;--code-bg:#eef0f4;--accent:#4577d1;--link:#3a67b8}
+@media(prefers-color-scheme:dark){:root{--bg:#080a0e;--fg:#e9ecf3;--muted:#a2a7b8;--line:#232735;--code-bg:#12141b;--accent:#5b8de0;--link:#6f9ae6}}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding:64px 28px 120px}
+h1{font-size:2rem;line-height:1.2;margin:0 0 .3em;letter-spacing:-.02em}
+h2{font-size:1.35rem;margin:2.2em 0 .5em;padding-bottom:.25em;border-bottom:1px solid var(--line)}
+h3{font-size:1.08rem;margin:1.8em 0 .4em}
+p{margin:.7em 0}
+a{color:var(--link);text-decoration:none;border-bottom:1px solid transparent}
+a:hover{border-bottom-color:var(--link)}
+code{background:var(--code-bg);padding:.12em .4em;border-radius:4px;font:.86em/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code-bg);padding:16px 18px;border-radius:8px;overflow-x:auto;border:1px solid var(--line)}
+pre code{background:none;padding:0;font-size:.85em}
+ul,ol{padding-left:1.4em;margin:.7em 0}
+li{margin:.3em 0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:var(--code-bg);border-radius:0 6px 6px 0;color:var(--muted)}
+blockquote strong{color:var(--fg)}
+table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:.92em;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:.5em .7em;text-align:left;vertical-align:top}
+th{background:var(--code-bg);font-weight:600}
+hr{border:none;border-top:1px solid var(--line);margin:2em 0}
+strong{font-weight:650}
+</style></head><body><main class="wrap">
+<h1>User Guide</h1>
+<p>Getting the statusline installed, reading every segment, and fixing it when something looks wrong.</p>
+<h2>1. Requirements</h2>
+<table><thead><tr><th>Platform</th><th>Shell</th><th>Also needs</th></tr></thead><tbody><tr><td>macOS / Linux</td><td><strong>bash</strong> (3.2+, i.e. anything since 2007)</td><td><a href="https://jqlang.github.io/jq/"><code>jq</code></a> — at install <em>and</em> at render time</td></tr><tr><td>Windows</td><td><strong>PowerShell</strong> 5.1+ or PowerShell 7</td><td>nothing — JSON parsing is built in</td></tr></tbody></table>
+<p>Plus <a href="https://claude.com/claude-code">Claude Code</a> itself, and a terminal that can render UTF-8 emoji and ANSI color. Both ship with your OS; the only thing you may need to add is <code>jq</code>:</p>
+<pre><code>brew install jq        # macOS
+sudo apt install jq    # Debian / Ubuntu</code></pre>
+<h2>2. Install</h2>
+<p>Each script is <strong>self-installing</strong> — download the one for your platform and run it with the install flag. There's nothing to clone.</p>
+<h3>macOS / Linux</h3>
+<pre><code>curl -fsSLO https://raw.githubusercontent.com/dberardi2020/claude-statusline-kit/main/statusline-command.sh
+bash statusline-command.sh --install</code></pre>
+<h3>Windows</h3>
+<pre><code>irm https://raw.githubusercontent.com/dberardi2020/claude-statusline-kit/main/statusline.ps1 -OutFile statusline.ps1
+./statusline.ps1 -Install</code></pre>
+<p>Either way you should see:</p>
+<pre><code>✓ statusline installed → /Users/you/.claude/statusline-command.sh
+✓ settings.json wired (backup: /Users/you/.claude/settings.json.bak-20260721143022)
+  Restart Claude Code or open a new session to see it.</code></pre>
+<p><strong>Restart Claude Code</strong> (or open a new session) and the line appears.</p>
+<h3>What the installer actually did</h3>
+<ol><li>Copied the script to <code>~/.claude/</code>.</li><li>Backed up <code>~/.claude/settings.json</code> to <code>settings.json.bak-&lt;timestamp&gt;</code>.</li><li><strong>Merged</strong> — not overwrote — a <code>statusLine</code> entry into it, leaving every other key intact.</li></ol>
+<p>If you already had a <em>different</em> <code>statusLine</code> configured, it says so rather than silently clobbering it, and prints both the old command and the backup path.</p>
+<h3>Manual install</h3>
+<p>Prefer to wire it yourself? Copy the script into <code>~/.claude/</code> and add to <code>~/.claude/settings.json</code>:</p>
+<pre><code>{
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline-command.sh"
+  }
+}</code></pre>
+<p>On Windows, point it at PowerShell instead:</p>
+<pre><code>{
+  "statusLine": {
+    "type": "command",
+    "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\you\\.claude\\statusline.ps1"
+  }
+}</code></pre>
+<h2>3. Reading the line</h2>
+<pre><code>| 🤖 [Opus 4.8] | ▓▓▓▓░░░░░░ 42% | ⏳ [2h0m] 15% | 📅 [3d11h] 50% |
+───────────────────────────────────────────────────────────────────────
+| 📁 Home | 🌿 master | 💰 $2.10 | ⏱️ 1h30m |
+───────────────────────────────────────────────────────────────────────</code></pre>
+<table><thead><tr><th>Segment</th><th>Reads as</th><th>Notes</th></tr></thead><tbody><tr><td>🤖 <code>[Opus 4.8]</code></td><td>The model this session is on</td><td>Any <code>(1M context)</code>-style annotation is stripped.</td></tr><tr><td><code>▓▓▓▓░░░░░░ 42%</code></td><td>Context window is 42% full</td><td>10 cells, one per 10%. Colored by usage.</td></tr><tr><td>⏳ <code>[2h0m] 15%</code></td><td>2 hours until the 5-hour window resets; 15% of it used</td><td>Countdown and percent are colored <strong>independently</strong> — see below.</td></tr><tr><td>📅 <code>[3d11h] 50%</code></td><td>3 days 11 hours until the 7-day window resets; 50% used</td><td>Same.</td></tr><tr><td>📁 <code>Home</code></td><td>The <strong>leaf</strong> of the working directory</td><td><code>/work/Home</code> shows as <code>Home</code>.</td></tr><tr><td>🌿 <code>master</code></td><td>Current git branch</td><td><code>---</code> when you're not in a repo; a 7-char SHA on a detached HEAD.</td></tr><tr><td>💰 <code>$2.10</code></td><td>Session cost so far</td><td>Two decimal places.</td></tr><tr><td>⏱️ <code>1h30m</code></td><td>Wall-clock time in this session</td><td>The hour is dropped under 1h, e.g. <code>45m</code>.</td></tr></tbody></table>
+<h3>The two colorings</h3>
+<p>This is the part worth internalizing, because the countdown color is <strong>inverse</strong> to what you might first assume:</p>
+<table><thead><tr><th>What</th><th>Green</th><th>Yellow</th><th>Red</th></tr></thead><tbody><tr><td>Any <strong>percentage</strong></td><td>≤60% used</td><td>≤85% used</td><td>&gt;85% used</td></tr><tr><td>A rate-limit <strong>countdown</strong></td><td>&lt;20% of window left</td><td>20–60% left</td><td>&gt;60% left</td></tr></tbody></table>
+<p>So a freshly-reset 5-hour window shows <code>⏳ [4h50m] 3%</code> — a <strong>red countdown next to a green percent</strong>. That's right, not a bug: you have plenty of budget (green), but if you <em>do</em> run out you're nearly five hours from relief (red). As the window burns down, the countdown cools to green while the percentage heats toward red.</p>
+<p>Everything else on the line — labels, pipes, rules, and the ⏱️ timer — stays white, so any color you see is telling you something.</p>
+<h3>Segments that aren't there</h3>
+<p>Missing segments are <strong>normal</strong>, not broken. Each one drops out entirely when Claude Code doesn't supply its data, rather than rendering a misleading zero. The most common case is covered in troubleshooting below.</p>
+<h2>4. Verifying it works</h2>
+<p>You can render the statusline by hand without Claude Code — just pipe it a payload:</p>
+<pre><code>echo '{"model":{"display_name":"Opus 4.8"},"workspace":{"current_dir":"/tmp"},
+"context_window":{"used_percentage":42},"cost":{"total_cost_usd":2.1,"total_duration_ms":5400000}}' \
+  | bash ~/.claude/statusline-command.sh</code></pre>
+<pre><code>'{"model":{"display_name":"Opus 4.8"},"cwd":"C:\\tmp","context_window":{"used_percentage":42}}' `
+  | pwsh -NoProfile -File $HOME\.claude\statusline.ps1</code></pre>
+<p>If that prints two colored lines, the script is fine and any problem is in the wiring.</p>
+<h2>5. Troubleshooting</h2>
+<h3>Line 1 is nearly empty on a fresh session</h3>
+<p><strong>Expected.</strong> Right after a session starts you may see only <code>🤖 [Opus 4.8]</code> — no bar, no ⏳, no 📅. Claude Code omits <code>context_window</code> and <code>rate_limits</code> from the session JSON until the session has actually used something, and the kit drops each segment whose field is absent. Send one message and they appear. <em>(Tracked as <strong>CSK-0011</strong> — a dimmed placeholder for the not-yet-known state is under consideration.)</em></p>
+<h3>Nothing appears at all</h3>
+<ol><li>Restart Claude Code — the <code>statusLine</code> setting is read at startup.</li><li>Check the wiring: <code>cat ~/.claude/settings.json</code> should have a <code>statusLine</code> block whose <code>command</code> points at the script.</li><li>Check the script is executable: <code>ls -l ~/.claude/statusline-command.sh</code>.</li><li>Render it by hand (§4). If that works, the problem is the settings entry.</li></ol>
+<h3><code>jq: command not found</code></h3>
+<p>The bash implementation needs <code>jq</code> at render time, not just at install. Install it (§1).</p>
+<h3>The line renders as mojibake / boxes</h3>
+<p>Your terminal isn't decoding UTF-8. On Windows this is usually the console codepage — the statusline emits UTF-8 regardless of what the console expects. Modern Windows Terminal handles it; an old <code>conhost</code> window may not.</p>
+<h3>Colors look washed out or wrong</h3>
+<p>The kit uses palette-indexed ANSI colors (32/33/31), which each terminal maps to its own RGB — so the same green is a different green in iTerm2, Windows Terminal, and Terminal.app. Nothing is broken; the theme is doing it. <em>(Tracked as <strong>CSK-0002</strong> — a move to 24-bit truecolor would pin the exact hues.)</em></p>
+<h3>The branch shows <code>---</code> inside a repo</h3>
+<p>The branch is found by walking up from the session's working directory looking for <code>.git/HEAD</code>. If your repo uses a <code>.git</code> <strong>file</strong> rather than a directory (submodules, worktrees), the walk won't find it.</p>
+<h3>It hangs when I run the script directly</h3>
+<p>You ran it with no arguments and no piped input, so it's waiting on stdin. The bash script prints usage instead in this case; PowerShell currently doesn't <em>(<strong>CSK-0008</strong>)</em>. Press Ctrl-C.</p>
+<h2>6. Updating</h2>
+<p>Re-run the installer with a freshly downloaded script. It overwrites the copy in <code>~/.claude/</code>, writes a new backup, and reports the re-install as a refresh rather than a clash:</p>
+<pre><code>  (refreshed your existing Statusline Kit install)</code></pre>
+<p><em>(A first-class <code>update</code> / <code>repair</code> / <code>uninstall</code> command family is tracked as <strong>CSK-0001</strong>.)</em></p>
+<h2>7. Uninstalling</h2>
+<p>There's no uninstall flag yet. To remove it by hand:</p>
+<ol><li>Delete the <code>statusLine</code> block from <code>~/.claude/settings.json</code> — or restore one of the <code>settings.json.bak-*</code> files the installer left next to it.</li><li>Delete <code>~/.claude/statusline-command.sh</code> (or <code>statusline.ps1</code>).</li><li>Delete any <code>settings.json.bak-*</code> files you no longer want.</li><li>Restart Claude Code.</li></ol>
+<h2>Next</h2>
+<ul><li>The model behind the segments → <a href="concepts.md">Concepts</a>.</li><li>What's verified on which platform → <a href="platforms-and-status.md">Platforms &amp; Status</a>.</li><li>How each segment is computed → <a href="../technical/rendering.md">technical/rendering.md</a>.</li></ul>
+</main></body></html>

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Architecture</title><style>
+:root{--bg:#f7f8fa;--fg:#181820;--muted:#565666;--line:#e5e7ec;--code-bg:#eef0f4;--accent:#4577d1;--link:#3a67b8}
+@media(prefers-color-scheme:dark){:root{--bg:#080a0e;--fg:#e9ecf3;--muted:#a2a7b8;--line:#232735;--code-bg:#12141b;--accent:#5b8de0;--link:#6f9ae6}}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding:64px 28px 120px}
+h1{font-size:2rem;line-height:1.2;margin:0 0 .3em;letter-spacing:-.02em}
+h2{font-size:1.35rem;margin:2.2em 0 .5em;padding-bottom:.25em;border-bottom:1px solid var(--line)}
+h3{font-size:1.08rem;margin:1.8em 0 .4em}
+p{margin:.7em 0}
+a{color:var(--link);text-decoration:none;border-bottom:1px solid transparent}
+a:hover{border-bottom-color:var(--link)}
+code{background:var(--code-bg);padding:.12em .4em;border-radius:4px;font:.86em/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code-bg);padding:16px 18px;border-radius:8px;overflow-x:auto;border:1px solid var(--line)}
+pre code{background:none;padding:0;font-size:.85em}
+ul,ol{padding-left:1.4em;margin:.7em 0}
+li{margin:.3em 0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:var(--code-bg);border-radius:0 6px 6px 0;color:var(--muted)}
+blockquote strong{color:var(--fg)}
+table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:.92em;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:.5em .7em;text-align:left;vertical-align:top}
+th{background:var(--code-bg);font-weight:600}
+hr{border:none;border-top:1px solid var(--line);margin:2em 0}
+strong{font-weight:650}
+</style></head><body><main class="wrap">
+<h1>Architecture</h1>
+<p>The Statusline Kit is a <strong>stateless filter</strong>: JSON in on stdin, two ANSI lines out on stdout, exit. There is no daemon, no cache, and no state carried between invocations. The "architecture" is therefore mostly about two things — the <strong>mode split</strong> inside each script, and the <strong>parity seam</strong> between the two scripts.</p>
+<h2>The layers</h2>
+<pre><code>  ┌─────────────────────────── Claude Code ────────────────────────────┐
+  │  reads settings.json → invokes statusLine.command once per render,  │
+  │  pipes session JSON on stdin, draws stdout in the terminal chrome   │
+  └──────────────────────────────┬─────────────────────────────────────┘
+                                 │  session JSON
+                                 ▼
+  ┌──────────────────────── One script, two modes ─────────────────────┐
+  │                                                                     │
+  │   argv guard ──► INSTALL MODE          ──► exit 0                   │
+  │   (--install / -Install)   copy self → ~/.claude/                   │
+  │                            back up + merge settings.json            │
+  │                                                                     │
+  │   otherwise  ──► RENDER MODE                                        │
+  │                     1. parse   stdin JSON → 9 scalars               │
+  │                     2. compute each segment, independently          │
+  │                     3. assemble line 1 (variable) + line 2 (fixed)  │
+  │                     4. print   2 lines + 2 rules                    │
+  └──────────────────────────────┬─────────────────────────────────────┘
+                                 │
+                    ┌────────────┴────────────┐
+                    ▼                         ▼
+        statusline-command.sh        statusline.ps1
+        bash 3.2 · jq                PowerShell 5.1 · ConvertFrom-Json
+        macOS / Linux                Windows
+                    \                         /
+                     └──── same goldens ─────┘
+                        tests/golden/*.txt
+                     (parity is a test, not code)</code></pre>
+<h2>The parity seam</h2>
+<p>This is the unusual part of the design and the thing to understand first.</p>
+<p>There is <strong>no shared code</strong> between the two implementations — not a common core, not a generated file, not a config format they both read. They are two independent programs that happen to produce identical bytes. The seam that holds them together is <code>tests/golden/*.txt</code>: a set of expected-output files that <strong>both</strong> runners compare against.</p>
+<p>That choice has a clear cost and a clear benefit:</p>
+<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Cost</strong></td><td>Every behavioral change must be made twice, and PowerShell has drifted from bash more than once.</td></tr><tr><td><strong>Benefit</strong></td><td>Zero runtime dependencies. Each script is a single file in a shell guaranteed to exist on its platform, with nothing to install and nothing to bootstrap.</td></tr></tbody></table>
+<p>The trade was made deliberately — see <a href="../decisions/0001-two-native-shell-scripts-over-node.md">ADR 0001</a>. The golden suite exists precisely because the cost is real: it converts "two files must stay in sync" from a discipline into a merge-blocking CI check.</p>
+<p><strong>Bash is the reference.</strong> Goldens are generated from it; PowerShell is held to them.</p>
+<h2>End-to-end: what one render does</h2>
+<ol><li><strong>Claude Code invokes the command.</strong> It read <code>statusLine.command</code> from <code>~/.claude/settings.json</code> at startup and runs it once per render, piping a JSON object describing the session to stdin.</li><li><strong>Mode guard.</strong> The script checks its arguments first. <code>--install</code> / <code>-Install</code> diverts to install mode and exits; anything else falls through to render. Bash additionally guards the <em>bare interactive run</em> — no args and a TTY on stdin means a human ran it by hand, so it prints usage instead of blocking on <code>cat</code>.</li><li><strong>Parse.</strong> The entire payload is reduced to <strong>nine scalars</strong> in one pass — model, cwd, context %, two rate-limit resets, two rate-limit percentages, cost, duration. Bash does this with a single <code>jq</code> invocation emitting one value per line; PowerShell with <code>ConvertFrom-Json</code> plus a <code>Get-Safe</code> path walker. Every read carries a default, so a missing key yields an empty string rather than an error.</li><li><strong>Read the clock.</strong> <code>now</code> comes from <code>SL_NOW</code> if that environment variable is set, otherwise the real clock. This is the <a href="testing.md#the-clock-seam">test seam</a> — unset in normal use, zero runtime effect.</li><li><strong>Compute each segment independently.</strong> Nine segments, each from its own one or two scalars, each guarded so an unset source produces an empty segment string rather than a zero. Nothing on the line is derived from anything else on the line. Full spec in <a href="rendering.md">Rendering</a>.</li><li><strong>Assemble.</strong> Line 1 is built by appending only the non-empty segments, so absent data shortens the line rather than leaving a hole. Line 2 is fixed at four segments — its sources always have defaults.</li><li><strong>Print.</strong> Line 1, a 71-char rule, line 2, a second rule.</li></ol>
+<p>Steps 3–7 touch nothing outside the process except the wall clock and the filesystem (for <code>.git/HEAD</code> during branch detection). That's what makes the whole thing deterministic under a pinned <code>SL_NOW</code>, and it's the entire basis of the test suite.</p>
+<h2>The key seams (where responsibilities are cut)</h2>
+<table><thead><tr><th>Seam</th><th>Boundary</th><th>Why it's there</th></tr></thead><tbody><tr><td><strong>Claude Code ↔ kit</strong></td><td>The session JSON on stdin; two lines on stdout.</td><td>The only contract with the host. The kit never asks Claude Code anything — it renders what it's handed. See <a href="data-model-and-config.md">Data Model &amp; Config</a>.</td></tr><tr><td><strong>Render ↔ install</strong></td><td>An argv check at the top of the file.</td><td>One file does both, so setup is one download and one command with no separate installer to trust. See <a href="install-and-distribution.md">Install &amp; Distribution</a>.</td></tr><tr><td><strong>Parse ↔ compute</strong></td><td>Nine scalars with defaults already applied.</td><td>All the payload-shape knowledge lives in one place. Segment code below it never touches the JSON, so a payload change is a one-line fix.</td></tr><tr><td><strong>Bash ↔ PowerShell</strong></td><td><code>tests/golden/*.txt</code> — expected output, not shared code.</td><td>Zero runtime dependencies at the cost of dual maintenance; the goldens make the cost visible in CI rather than at a user's terminal. See <a href="implementations.md">Implementations</a>.</td></tr><tr><td><strong>Clock ↔ render</strong></td><td><code>SL_NOW</code>, read once.</td><td>The only nondeterminism in the program, isolated to one variable so the output can be pinned. See <a href="testing.md">Testing</a>.</td></tr></tbody></table>
+<h2>Why the design looks like this</h2>
+<ul><li><strong>Two native-shell scripts, not one Node script</strong> (<a href="../decisions/0001-two-native-shell-scripts-over-node.md">0001</a>) — a shared runtime would assume <code>node</code> on <code>PATH</code>, and Claude Code's native-binary installer puts none there. The native shells are guaranteed present on their platforms, so the two-script approach has zero unmet runtime dependencies. Everything else in this document follows from that.</li><li><strong>Parity enforced by goldens rather than by abstraction</strong> — the natural fix for dual maintenance is a shared core, but there's no language both shells can share without reintroducing exactly the runtime dependency ADR 0001 rejected. Tests are the only available seam.</li><li><strong>Guard everything, assert nothing</strong> — the statusline renders on <em>every</em> Claude Code render, in the user's terminal chrome. A crash there is constant, noisy, and reads as Claude Code being broken. So a missing field costs one segment, never the line.</li><li><strong>Segments drop rather than zero</strong> — rendering <code>⏳ [0h0m] 0%</code> for absent data would be actively misleading, and there's no way to distinguish "no data" from "genuinely zero" after the fact. Dropping is the honest degradation.</li><li><strong>Stateless</strong> — a cache would need invalidation, a lock, and a location, and would buy nothing: the payload already carries everything except the clock and the branch.</li></ul>
+<p>For the full decision history, read <a href="../decisions/"><code>../decisions/</code></a>.</p>
+</main></body></html>

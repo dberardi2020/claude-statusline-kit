@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Claude Code Statusline Kit — Technical docs</title><style>
+:root{--bg:#f7f8fa;--fg:#181820;--muted:#565666;--line:#e5e7ec;--code-bg:#eef0f4;--accent:#4577d1;--link:#3a67b8}
+@media(prefers-color-scheme:dark){:root{--bg:#080a0e;--fg:#e9ecf3;--muted:#a2a7b8;--line:#232735;--code-bg:#12141b;--accent:#5b8de0;--link:#6f9ae6}}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding:64px 28px 120px}
+h1{font-size:2rem;line-height:1.2;margin:0 0 .3em;letter-spacing:-.02em}
+h2{font-size:1.35rem;margin:2.2em 0 .5em;padding-bottom:.25em;border-bottom:1px solid var(--line)}
+h3{font-size:1.08rem;margin:1.8em 0 .4em}
+p{margin:.7em 0}
+a{color:var(--link);text-decoration:none;border-bottom:1px solid transparent}
+a:hover{border-bottom-color:var(--link)}
+code{background:var(--code-bg);padding:.12em .4em;border-radius:4px;font:.86em/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code-bg);padding:16px 18px;border-radius:8px;overflow-x:auto;border:1px solid var(--line)}
+pre code{background:none;padding:0;font-size:.85em}
+ul,ol{padding-left:1.4em;margin:.7em 0}
+li{margin:.3em 0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:var(--code-bg);border-radius:0 6px 6px 0;color:var(--muted)}
+blockquote strong{color:var(--fg)}
+table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:.92em;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:.5em .7em;text-align:left;vertical-align:top}
+th{background:var(--code-bg);font-weight:600}
+hr{border:none;border-top:1px solid var(--line);margin:2em 0}
+strong{font-weight:650}
+</style></head><body><main class="wrap">
+<h1>Claude Code Statusline Kit — Technical docs</h1>
+<p>Documentation for <strong>developers</strong> working on the code. Assumes you've skimmed the <a href="../product/README.md">Product docs</a> for the vocabulary (Segment · Line · Coloring · Mode · Parity).</p>
+<h2>Start here</h2>
+<table><thead><tr><th>Doc</th><th>Read it for</th></tr></thead><tbody><tr><td><a href="architecture.md">Architecture</a></td><td>The two modes, the end-to-end flow from Claude Code's invocation to two printed lines, and the seams.</td></tr><tr><td><a href="tech-stack.md">Tech Stack</a></td><td>Every dependency — bash 3.2, <code>jq</code>, PowerShell 5.1, GitHub Actions — and <em>why</em> each.</td></tr><tr><td><a href="rendering.md">Rendering</a></td><td><strong>The specification.</strong> Layout, per-segment computation, the color model, encoding. Both implementations must satisfy this doc.</td></tr><tr><td><a href="implementations.md">Implementations</a></td><td>How bash and PowerShell each realize the spec, where they structurally differ, and the known divergences.</td></tr><tr><td><a href="data-model-and-config.md">Data Model &amp; Config</a></td><td>The session-JSON contract, the guard/default table, <code>settings.json</code>, and the <code>SL_NOW</code> seam.</td></tr><tr><td><a href="install-and-distribution.md">Install &amp; Distribution</a></td><td>The self-install algorithm, the safe <code>settings.json</code> merge, and how the kit is shipped.</td></tr><tr><td><a href="module-reference.md">Module Reference</a></td><td>Every file: responsibility, structure, key functions.</td></tr><tr><td><a href="testing.md">Testing</a></td><td>The golden-parity approach, the fixture set, install-mode tests, platform gotchas, and CI.</td></tr></tbody></table>
+<h2>The shape, at a glance</h2>
+<p>Two standalone scripts, ~450 lines total, with no shared code between them — the parity is enforced by tests rather than by abstraction.</p>
+<pre><code>statusline-command.sh      # bash implementation (227 lines) — render + install modes
+statusline.ps1             # PowerShell implementation (222 lines) — render + install modes
+                           #   ⚠ carries a load-bearing UTF-8 BOM on line 1
+llms.txt                   # machine-readable summary for agents
+tests/
+  fixtures/*.json          # 8 representative session payloads
+  golden/*.txt             # expected output — generated from bash, the reference impl
+  run.sh  run.ps1          # render-golden runners; both compare to the SAME goldens
+  install.sh               # install-mode tests against throwaway $HOME dirs
+.github/workflows/tests.yml# bash on Linux; PS 7 + PS 5.1 on Windows, under chcp 437
+docs/                      # this suite + decisions/ (ADRs)
+  render.py                # stdlib-only Markdown → styled HTML renderer</code></pre>
+<h2>The three invariants worth knowing first</h2>
+<ul><li><strong>Every field read is guarded.</strong> No access to the session JSON may raise. A missing key degrades its segment to a default or drops it from the line entirely. The statusline runs on every render in the user's terminal chrome — a crash there is worse than a blank field. See <a href="data-model-and-config.md">Data Model &amp; Config</a>.</li><li><strong>Bash is the reference implementation.</strong> Goldens are generated from it; PowerShell is held to them. Every parity bug found so far has been PowerShell drifting from a correct bash. See <a href="implementations.md">Implementations</a>.</li><li><strong>The render is a pure function of (stdin JSON, clock, filesystem).</strong> No state persists between invocations. Pin the clock with <code>SL_NOW</code> and the output is fully determined — which is the entire basis of the test suite. See <a href="testing.md">Testing</a>.</li></ul>
+<h2>The one thing that will bite you</h2>
+<p><code>statusline.ps1</code> <strong>must</strong> keep its UTF-8 BOM. Without it Windows PowerShell 5.1 decodes the file as Windows-1252, mangles the astral-plane emoji, and fails to parse. Many editors and formatters strip BOMs silently. See <a href="testing.md#platform-notes">Testing</a>.</p>
+<h2>Deeper references</h2>
+<ul><li><a href="../decisions/"><code>../decisions/</code></a> — the ADRs: <em>why</em> each choice was made. Start with <a href="../decisions/0001-two-native-shell-scripts-over-node.md">0001</a>, which is the decision the whole two-script structure follows from.</li><li><a href="../product/concepts.md"><code>../product/concepts.md</code></a> — the concept model (Segment · Line · Coloring · Mode · Parity).</li></ul>
+</main></body></html>

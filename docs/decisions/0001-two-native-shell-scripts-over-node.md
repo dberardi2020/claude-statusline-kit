@@ -32,7 +32,7 @@ dependencies. We accept the dual-maintenance cost in exchange for that robustnes
 ## Consequences
 
 - Two files must be kept in **behavioral lockstep** — same JSON contract, same layout,
-  same color thresholds. [technical/design.md](../technical/design.md) is the shared spec,
+  same color thresholds. [technical/rendering.md](../technical/rendering.md) is the shared spec,
   and the golden-parity tests ([technical/testing.md](../technical/testing.md)) enforce it in
   CI. This risk is not hypothetical: the PowerShell script has drifted from bash more than
   once (rate-limit dropping, bar rounding, cwd fallback), always with bash correct — which is

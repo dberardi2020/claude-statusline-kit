@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tech Stack</title><style>
+:root{--bg:#f7f8fa;--fg:#181820;--muted:#565666;--line:#e5e7ec;--code-bg:#eef0f4;--accent:#4577d1;--link:#3a67b8}
+@media(prefers-color-scheme:dark){:root{--bg:#080a0e;--fg:#e9ecf3;--muted:#a2a7b8;--line:#232735;--code-bg:#12141b;--accent:#5b8de0;--link:#6f9ae6}}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding:64px 28px 120px}
+h1{font-size:2rem;line-height:1.2;margin:0 0 .3em;letter-spacing:-.02em}
+h2{font-size:1.35rem;margin:2.2em 0 .5em;padding-bottom:.25em;border-bottom:1px solid var(--line)}
+h3{font-size:1.08rem;margin:1.8em 0 .4em}
+p{margin:.7em 0}
+a{color:var(--link);text-decoration:none;border-bottom:1px solid transparent}
+a:hover{border-bottom-color:var(--link)}
+code{background:var(--code-bg);padding:.12em .4em;border-radius:4px;font:.86em/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code-bg);padding:16px 18px;border-radius:8px;overflow-x:auto;border:1px solid var(--line)}
+pre code{background:none;padding:0;font-size:.85em}
+ul,ol{padding-left:1.4em;margin:.7em 0}
+li{margin:.3em 0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:var(--code-bg);border-radius:0 6px 6px 0;color:var(--muted)}
+blockquote strong{color:var(--fg)}
+table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:.92em;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:.5em .7em;text-align:left;vertical-align:top}
+th{background:var(--code-bg);font-weight:600}
+hr{border:none;border-top:1px solid var(--line);margin:2em 0}
+strong{font-weight:650}
+</style></head><body><main class="wrap">
+<h1>Tech Stack</h1>
+<p>A deliberately tiny stack. There is <strong>no build step, no package manager, and no runtime to install</strong> — the whole kit is two scripts written in shells that ship with their operating systems. Exactly one external dependency exists, and only on one platform.</p>
+<h2>The runtimes</h2>
+<table><thead><tr><th></th><th>macOS / Linux</th><th>Windows</th></tr></thead><tbody><tr><td><strong>Shell</strong></td><td>bash</td><td>PowerShell</td></tr><tr><td><strong>Floor</strong></td><td><strong>3.2</strong></td><td><strong>5.1</strong> (Windows PowerShell)</td></tr><tr><td><strong>Why that floor</strong></td><td>3.2 is what macOS ships (2007-era, frozen for GPL-license reasons). Targeting it means no <code>declare -A</code>, no <code>${var^^}</code>, no <code>mapfile</code>.</td><td>5.1 is what Windows ships out of the box. PowerShell 7 is supported too, but 5.1 is the constraint.</td></tr><tr><td><strong>JSON</strong></td><td><code>jq</code> (external)</td><td><code>ConvertFrom-Json</code> (built in)</td></tr></tbody></table>
+<p>Targeting the <em>shipped</em> version of each shell rather than a current one is the whole point: the kit's argument for existing in two implementations is that both are <strong>guaranteed present</strong>. A script that needs bash 5 or PowerShell 7 would reintroduce the install step that <a href="../decisions/0001-two-native-shell-scripts-over-node.md">ADR 0001</a> set out to avoid.</p>
+<h2>Dependencies</h2>
+<table><thead><tr><th>Dependency</th><th>Platform</th><th>Buys</th><th>Needed at</th></tr></thead><tbody><tr><td><code>jq</code></td><td>macOS / Linux</td><td>JSON parsing for bash</td><td><strong>install and render</strong></td></tr></tbody></table>
+<p>That is the complete list. PowerShell needs nothing — <code>ConvertFrom-Json</code> has been built in since PS 3.0.</p>
+<h3>Why <code>jq</code> — and why it's acceptable</h3>
+<p>bash has no JSON parser, and hand-rolling one in a shell that predates associative arrays would be both fragile and far more code than the rest of the script. <code>jq</code> is the standard answer, is in every package manager, and does the whole parse in <strong>one invocation</strong> — the script asks for all nine fields at once and reads them back a line at a time:</p>
+<pre><code>jq -r '(.model.display_name // "?"), (.workspace.current_dir // .cwd // ""), …'</code></pre>
+<p>The <code>//</code> operator supplies the default inline, which is what makes the <a href="data-model-and-config.md">guard-everything rule</a> cheap rather than nine separate checks.</p>
+<p>It's the one place the kit accepts an unmet dependency, and it's a real cost: a user without <code>jq</code> gets nothing until they install it, so the installer <strong>hard-checks</strong> for it and fails early with a platform-appropriate hint rather than letting the statusline silently fail at render time.</p>
+<h3>What was rejected: Node</h3>
+<p>The strongest single-implementation candidate, and the one ADR 0001 exists to reject. A Node script assumes <code>node</code> on <code>PATH</code> — an assumption that fails in practice, because Claude Code is increasingly installed via its <strong>native binary installer</strong>, which bundles no Node and puts none on <code>PATH</code>. This was verified on a development machine where <code>node</code> and <code>npm</code> are both absent yet Claude Code runs fine; a statusline installed as <code>node "…"</code> would simply have failed there.</p>
+<p>Being a Node project itself is not the same as putting Node on the user's machine. See <a href="../decisions/0001-two-native-shell-scripts-over-node.md">ADR 0001</a>.</p>
+<h3>What was rejected: <code>git</code></h3>
+<p>The branch segment reads <code>.git/HEAD</code> off the filesystem rather than shelling out to <code>git</code>. Two reasons: it would add a <code>git</code>-on-<code>PATH</code> dependency the bash path doesn't otherwise have, and <code>git branch --show-current</code> prints <strong>nothing</strong> on a detached HEAD, where the kit shows a short SHA — so matching bash and PowerShell would have meant special-casing that anyway. Reading the file directly is fewer moving parts and identical on both platforms.</p>
+<h2>What the standard shells provide</h2>
+<p>Everything else is built in, and worth listing because it's the reason there's no dependency list:</p>
+<table><thead><tr><th>Need</th><th>bash</th><th>PowerShell</th></tr></thead><tbody><tr><td>JSON parse</td><td><code>jq</code></td><td><code>ConvertFrom-Json</code></td></tr><tr><td>Rounding</td><td><code>printf '%.0f'</code></td><td><code>[math]::Round</code> / <code>[math]::Floor</code></td></tr><tr><td>Integer math</td><td><code>$(( ))</code></td><td>native</td></tr><tr><td>Unix clock</td><td><code>date +%s</code></td><td><code>[DateTimeOffset]::UtcNow.ToUnixTimeSeconds()</code></td></tr><tr><td>Path leaf</td><td><code>basename</code></td><td><code>Split-Path -Leaf</code></td></tr><tr><td>Path parent</td><td><code>dirname</code></td><td><code>Split-Path -Parent</code></td></tr><tr><td>Colors</td><td>ANSI SGR via <code>$'\033[…m'</code></td><td>ANSI SGR via <code>[char]27</code></td></tr><tr><td>Non-ASCII output</td><td>UTF-8 source literals</td><td><code>[char]::ConvertFromUtf32</code> (see below)</td></tr></tbody></table>
+<h3>The one PowerShell workaround</h3>
+<p>Astral-plane emoji (🤖 📅 📁 🌿 💰, all above U+FFFF) cannot be written as literals in a PS 5.1 script — they get mangled. They're constructed instead:</p>
+<pre><code>$e_robot = [char]::ConvertFromUtf32(0x1F916)</code></pre>
+<p>Related and load-bearing: <code>statusline.ps1</code> carries a <strong>UTF-8 BOM</strong> on line 1. Without it, PS 5.1 reads the file as Windows-1252 and fails to parse. Don't strip it — see <a href="testing.md#platform-notes">Testing</a>.</p>
+<h2>Test &amp; CI tooling</h2>
+<table><thead><tr><th>Piece</th><th>What it is</th><th>Why</th></tr></thead><tbody><tr><td><strong><code>tests/run.sh</code> · <code>run.ps1</code></strong></td><td>Hand-written runners, no framework</td><td>A test framework would be a dependency, and the whole assertion is "does stdout equal this file".</td></tr><tr><td><strong><code>tests/golden/*.txt</code></strong></td><td>Expected output, generated from bash</td><td>The parity seam. Both runners compare to these same files.</td></tr><tr><td><strong><code>tests/install.sh</code></strong></td><td>Install-mode tests against throwaway <code>$HOME</code>s</td><td>The installer edits a real user's <code>settings.json</code>; it gets real coverage.</td></tr><tr><td><strong><code>SL_NOW</code></strong></td><td>Environment variable overriding the clock</td><td>The only nondeterminism in the program, isolated so output can be pinned.</td></tr><tr><td><strong>GitHub Actions</strong></td><td><code>ubuntu-latest</code> + <code>windows-latest</code></td><td>Turns parity into a merge-blocking invariant and gives PowerShell real Windows coverage — including a dedicated PS 5.1 job under <code>chcp 437</code>.</td></tr></tbody></table>
+<h2>Repo tooling</h2>
+<table><thead><tr><th>Piece</th><th>What it is</th></tr></thead><tbody><tr><td><strong><code>docs/render.py</code></strong></td><td>Stdlib-only Python renderer producing the paired <code>.html</code> for each doc. Not a dependency of the kit — a docs-authoring tool.</td></tr><tr><td><strong><code>.gitattributes</code></strong></td><td>Pins <code>eol=lf</code>. A Windows checkout rewriting line endings would corrupt the bash script and break every golden comparison.</td></tr><tr><td><strong><code>llms.txt</code></strong></td><td>A machine-readable summary at the repo root, so a coding agent pointed at the repo can install the kit without reading the whole README.</td></tr></tbody></table>
+<h2>The dependency-minimization rule</h2>
+<p>The stack stays this small because of one standing rule: <strong>a new dependency must be guaranteed present on its platform, or it doesn't go in.</strong></p>
+<p><code>jq</code> is the sole exception, and it's grandfathered on the strength of being universally packaged, doing the entire parse in one call, and being hard-checked at install time so a user learns about it before the statusline is wired in rather than after.</p>
+<p>Anything that would require a user to install a runtime — a language, a package manager, a framework — is rejected on sight, because the moment setup stops being "download one file and run it," the kit has lost the property it exists for.</p>
+</main></body></html>

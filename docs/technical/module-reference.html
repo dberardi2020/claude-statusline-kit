@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Module Reference</title><style>
+:root{--bg:#f7f8fa;--fg:#181820;--muted:#565666;--line:#e5e7ec;--code-bg:#eef0f4;--accent:#4577d1;--link:#3a67b8}
+@media(prefers-color-scheme:dark){:root{--bg:#080a0e;--fg:#e9ecf3;--muted:#a2a7b8;--line:#232735;--code-bg:#12141b;--accent:#5b8de0;--link:#6f9ae6}}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding:64px 28px 120px}
+h1{font-size:2rem;line-height:1.2;margin:0 0 .3em;letter-spacing:-.02em}
+h2{font-size:1.35rem;margin:2.2em 0 .5em;padding-bottom:.25em;border-bottom:1px solid var(--line)}
+h3{font-size:1.08rem;margin:1.8em 0 .4em}
+p{margin:.7em 0}
+a{color:var(--link);text-decoration:none;border-bottom:1px solid transparent}
+a:hover{border-bottom-color:var(--link)}
+code{background:var(--code-bg);padding:.12em .4em;border-radius:4px;font:.86em/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code-bg);padding:16px 18px;border-radius:8px;overflow-x:auto;border:1px solid var(--line)}
+pre code{background:none;padding:0;font-size:.85em}
+ul,ol{padding-left:1.4em;margin:.7em 0}
+li{margin:.3em 0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:var(--code-bg);border-radius:0 6px 6px 0;color:var(--muted)}
+blockquote strong{color:var(--fg)}
+table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:.92em;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:.5em .7em;text-align:left;vertical-align:top}
+th{background:var(--code-bg);font-weight:600}
+hr{border:none;border-top:1px solid var(--line);margin:2em 0}
+strong{font-weight:650}
+</style></head><body><main class="wrap">
+<h1>Module Reference</h1>
+<p>Every file in the repo: what it's responsible for, how it's structured, and the functions worth knowing. Line numbers are indicative — treat structure as authoritative, not offsets.</p>
+<p>For the behavioral spec these implement, see <a href="rendering.md">Rendering</a>.</p>
+<h2>The scripts</h2>
+<h3><code>statusline-command.sh</code></h3>
+<p><strong>bash 3.2-safe, macOS/Linux. The reference implementation.</strong> ~227 lines, top-to-bottom, no functions except three small helpers.</p>
+<table><thead><tr><th>Section</th><th>Does</th></tr></thead><tbody><tr><td><strong>Install-mode block</strong></td><td>An <code>if</code> on <code>$1</code> matching <code>--install</code> / <code>install</code> / <code>--setup</code>. Self-resolves via <code>${BASH_SOURCE[0]}</code>, hard-checks <code>jq</code>, copies itself, backs up and merges <code>settings.json</code>, reports, <code>exit 0</code>. Entirely self-contained — the render path below never runs in this mode. See <a href="install-and-distribution.md">Install &amp; Distribution</a>.</td></tr><tr><td><strong>Bare-invocation guard</strong></td><td><code>[ -t 0 ] &amp;&amp; [ "$#" -eq 0 ]</code> — a human ran it by hand with no pipe, so print usage instead of blocking on <code>cat</code>.</td></tr><tr><td><strong>Parse</strong></td><td>One <code>jq -r</code> emitting nine values one per line, read back through nine <code>IFS= read -r</code> inside a <code>{ … } &lt; &lt;(…)</code> process substitution. Piped through <code>tr -d '\r'</code>.</td></tr><tr><td><strong>Colors &amp; helpers</strong></td><td>The SGR constants and the three helper functions below.</td></tr><tr><td><strong>Line 1 segments</strong></td><td>Model, context bar, 5-hour, 7-day — each guarded, each producing a string that's empty when its source is absent.</td></tr><tr><td><strong>Line 2 segments</strong></td><td>Directory, branch, cost, elapsed.</td></tr><tr><td><strong>Render</strong></td><td>Builds the rule, appends non-empty segments to line 1, emits everything in one <code>printf</code>.</td></tr></tbody></table>
+<p>Key functions:</p>
+<table><thead><tr><th>Function</th><th>Signature</th><th>Does</th></tr></thead><tbody><tr><td><code>color_for_pct</code></td><td><code>(pct)</code> → SGR</td><td>Usage coloring: green ≤60, yellow ≤85, else red.</td></tr><tr><td><code>color_for_countdown</code></td><td><code>(seconds, window)</code> → SGR</td><td>Time-left coloring: <code>rem = 100·s/win</code>; &gt;60 red, ≥20 yellow, else green. Returns white if <code>window ≤ 0</code>.</td></tr><tr><td><code>is_set</code></td><td><code>(value)</code> → status</td><td>True when non-empty <strong>and</strong> not the literal <code>null</code>. The guard behind every droppable segment.</td></tr></tbody></table>
+<p>Bash-3.2 constraints in force: no associative arrays, no <code>mapfile</code>, no <code>${var^^}</code>. The bar is built with a <code>while</code> loop rather than string multiplication for the same reason.</p>
+<h3><code>statusline.ps1</code></h3>
+<p><strong>PowerShell 5.1-safe, Windows.</strong> ~222 lines, same top-to-bottom shape.</p>
+<blockquote>
+<p>⚠️ <strong>This file carries a UTF-8 BOM on line 1 and must keep it.</strong> Without it PS 5.1 decodes the file as Windows-1252, mangles the astral-plane emoji, and fails to parse.</p>
+</blockquote>
+<table><thead><tr><th>Section</th><th>Does</th></tr></thead><tbody><tr><td><strong><code>param(...)</code> + install block</strong></td><td><code>[switch]$Install, [switch]$Setup</code>. Self-resolves via <code>$PSCommandPath</code>, copies itself, backs up and merges <code>settings.json</code> via <code>ConvertFrom-Json</code>/<code>ConvertTo-Json</code>, registers a <code>pwsh</code>/<code>powershell</code> wrapper command, <code>exit 0</code>.</td></tr><tr><td><strong>Input</strong></td><td>Pins <code>[Console]::OutputEncoding</code> to UTF-8, then <code>[Console]::In.ReadToEnd()</code> piped to <code>ConvertFrom-Json</code>. No bare-invocation guard (<strong>CSK-0008</strong>).</td></tr><tr><td><strong>Constants</strong></td><td>Bar characters, SGR codes, and the emoji built via <code>ConvertFromUtf32</code>.</td></tr><tr><td><strong>Line 1 / Line 2</strong></td><td>Segments appended to <code>$parts</code> and <code>$line2</code> arrays, <code>-join</code>ed at the end.</td></tr><tr><td><strong>Render</strong></td><td>Four <code>Write-Host</code> calls: line 1, rule, line 2, rule.</td></tr></tbody></table>
+<p>Key functions:</p>
+<table><thead><tr><th>Function</th><th>Signature</th><th>Does</th></tr></thead><tbody><tr><td><code>Get-Safe</code></td><td><code>(obj, string[] path, default)</code> → value</td><td>Walks a property path inside a <code>try</code>, returning <code>default</code> on null or any failure. The universal guard — every payload read goes through it.</td></tr><tr><td><code>Get-CountdownColor</code></td><td><code>(int s, int win)</code> → SGR</td><td>The time-left coloring. Mirror of bash's <code>color_for_countdown</code>.</td></tr></tbody></table>
+<p>Usage coloring is <strong>inline ternaries</strong> rather than a function — the one place the two implementations differ in factoring without differing in behavior.</p>
+<p>The emoji constants are the notable block:</p>
+<pre><code>$e_robot  = [char]::ConvertFromUtf32(0x1F916)   # 🤖  astral — must be constructed
+$e_clock  = [char]0x23F3                        # ⏳  BMP — safe as a char
+$e_timer  = "$([char]0x23F1)$([char]0xFE0F)"    # ⏱️  BMP + variation selector</code></pre>
+<h2>Tests</h2>
+<p>See <a href="testing.md">Testing</a> for the approach; this is the file inventory.</p>
+<table><thead><tr><th>File</th><th>Responsibility</th></tr></thead><tbody><tr><td><code>tests/fixtures/*.json</code></td><td>Eight session payloads: <code>typical</code>, the three threshold cases (<code>green</code>/<code>yellow</code>/<code>red</code>), <code>no-ratelimits</code>, <code>past-reset</code> (must clamp to 0), <code>minimal</code> (exercises defaults and drops), <code>countdown-red</code> (early window — low usage, hot countdown; proves the two colorings are independent).</td></tr><tr><td><code>tests/golden/*.txt</code></td><td>Expected output, one per fixture. <strong>Generated from bash</strong>, the reference implementation. The parity seam.</td></tr><tr><td><code>tests/run.sh</code></td><td>Feeds each fixture to the bash script with <code>SL_NOW</code> pinned, diffs against the golden. Strips ANSI for readable failure output.</td></tr><tr><td><code>tests/run.ps1</code></td><td>Same, for PowerShell, against the <strong>same</strong> goldens. Pins <code>[Console]::OutputEncoding</code> <strong>and</strong> <code>$OutputEncoding</code> to BOM-less UTF-8 in a <code>try</code>/<code>finally</code> — see <a href="testing.md#platform-notes">Testing</a>.</td></tr><tr><td><code>tests/install.sh</code></td><td>Install-mode tests against throwaway <code>HOME</code> directories. 8 assertions; one is skipped on Git Bash.</td></tr><tr><td><code>tests/README.md</code></td><td>How to run each suite and regenerate goldens.</td></tr></tbody></table>
+<p>Both runners normalize <code>\r</code> and trailing newlines before comparing, which is why the trailing-newline difference between the implementations is outside the spec.</p>
+<h2>Repo files</h2>
+<table><thead><tr><th>File</th><th>Responsibility</th></tr></thead><tbody><tr><td><code>README.md</code></td><td>The user-facing quickstart: install, segment reference, behavior, roadmap.</td></tr><tr><td><code>llms.txt</code></td><td>Machine-readable summary so a coding agent can install the kit without reading the README.</td></tr><tr><td><code>.github/workflows/tests.yml</code></td><td>CI. <code>bash</code> job on <code>ubuntu-latest</code> (render + install); <code>powershell</code> job on <code>windows-latest</code> running the render goldens under <strong>both</strong> PS 7 and PS 5.1, each behind <code>chcp 437</code>.</td></tr><tr><td><code>.gitattributes</code></td><td>Pins <code>eol=lf</code>. A Windows checkout rewriting line endings would corrupt the bash script and break every golden comparison.</td></tr><tr><td><code>LICENSE</code></td><td>MIT.</td></tr></tbody></table>
+<h2>Docs</h2>
+<table><thead><tr><th>File</th><th>Responsibility</th></tr></thead><tbody><tr><td><code>docs/render.py</code></td><td>Stdlib-only Markdown → styled HTML renderer. Handles the Markdown subset the docs use; <code>convert()</code> extracts the <code>&lt;title&gt;</code> from the first H1. Identical across repos apart from the brand palette.</td></tr><tr><td><code>docs/statusline.html</code></td><td>The styled one-page reference — hand-maintained, not generated from a <code>.md</code>. Carries the same content as the README.</td></tr><tr><td><code>docs/statusline-example.svg</code></td><td>The statusline screenshot used in the README.</td></tr></tbody></table>
+<p>Everything else under <code>docs/</code> is prose — <code>product/</code>, <code>technical/</code>, <code>decisions/</code>, <code>tickets/</code> — each <code>.md</code> paired with a generated <code>.html</code>.</p>
+</main></body></html>

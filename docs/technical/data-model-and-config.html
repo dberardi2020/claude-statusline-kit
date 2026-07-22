@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Data Model &amp; Config</title><style>
+:root{--bg:#f7f8fa;--fg:#181820;--muted:#565666;--line:#e5e7ec;--code-bg:#eef0f4;--accent:#4577d1;--link:#3a67b8}
+@media(prefers-color-scheme:dark){:root{--bg:#080a0e;--fg:#e9ecf3;--muted:#a2a7b8;--line:#232735;--code-bg:#12141b;--accent:#5b8de0;--link:#6f9ae6}}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding:64px 28px 120px}
+h1{font-size:2rem;line-height:1.2;margin:0 0 .3em;letter-spacing:-.02em}
+h2{font-size:1.35rem;margin:2.2em 0 .5em;padding-bottom:.25em;border-bottom:1px solid var(--line)}
+h3{font-size:1.08rem;margin:1.8em 0 .4em}
+p{margin:.7em 0}
+a{color:var(--link);text-decoration:none;border-bottom:1px solid transparent}
+a:hover{border-bottom-color:var(--link)}
+code{background:var(--code-bg);padding:.12em .4em;border-radius:4px;font:.86em/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code-bg);padding:16px 18px;border-radius:8px;overflow-x:auto;border:1px solid var(--line)}
+pre code{background:none;padding:0;font-size:.85em}
+ul,ol{padding-left:1.4em;margin:.7em 0}
+li{margin:.3em 0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:var(--code-bg);border-radius:0 6px 6px 0;color:var(--muted)}
+blockquote strong{color:var(--fg)}
+table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:.92em;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:.5em .7em;text-align:left;vertical-align:top}
+th{background:var(--code-bg);font-weight:600}
+hr{border:none;border-top:1px solid var(--line);margin:2em 0}
+strong{font-weight:650}
+</style></head><body><main class="wrap">
+<h1>Data Model &amp; Config</h1>
+<p>Everything the kit reads and writes: the session JSON Claude Code hands it, the <code>settings.json</code> it edits at install time, and the one environment variable that exists for tests.</p>
+<h2>The session JSON contract</h2>
+<p>Claude Code invokes the configured <code>statusLine.command</code> once per render and pipes a JSON object describing the session to <strong>stdin</strong>. That object is the kit's only input, and the kit never asks Claude Code for anything else.</p>
+<h3>Fields consumed</h3>
+<table><thead><tr><th>Field</th><th>Type</th><th>Used for</th><th>Missing →</th></tr></thead><tbody><tr><td><code>model.display_name</code></td><td>string</td><td>🤖 Model segment</td><td><code>?</code></td></tr><tr><td><code>context_window.used_percentage</code></td><td>number</td><td>Context bar + percent</td><td><strong>segment dropped</strong></td></tr><tr><td><code>rate_limits.five_hour.resets_at</code></td><td>number (unix seconds)</td><td>⏳ countdown</td><td><strong>segment dropped</strong></td></tr><tr><td><code>rate_limits.five_hour.used_percentage</code></td><td>number</td><td>⏳ percent</td><td>percent omitted¹</td></tr><tr><td><code>rate_limits.seven_day.resets_at</code></td><td>number (unix seconds)</td><td>📅 countdown</td><td><strong>segment dropped</strong></td></tr><tr><td><code>rate_limits.seven_day.used_percentage</code></td><td>number</td><td>📅 percent</td><td>percent omitted¹</td></tr><tr><td><code>workspace.current_dir</code></td><td>string</td><td>📁 directory, 🌿 branch walk</td><td>falls back to <code>cwd</code></td></tr><tr><td><code>cwd</code></td><td>string</td><td>📁 directory, 🌿 branch walk</td><td>placeholder²</td></tr><tr><td><code>cost.total_cost_usd</code></td><td>number</td><td>💰 cost</td><td><code>$0.00</code></td></tr><tr><td><code>cost.total_duration_ms</code></td><td>number</td><td>⏱️ elapsed</td><td><code>0m</code></td></tr></tbody></table>
+<p>¹ In bash. PowerShell drops the whole segment instead — a known divergence, see <a href="implementations.md#1--rate-limit-segment-drop-condition">Implementations</a>. ² <code>—</code> in bash, <code>---</code> in PowerShell — also a known divergence.</p>
+<p>Every other key in the payload is <strong>ignored</strong>. The kit reads what it recognizes and never validates the shape, so a Claude Code release adding fields is a non-event.</p>
+<h3>A representative payload</h3>
+<pre><code>{
+  "model": { "display_name": "Opus 4.8 (1M context)" },
+  "workspace": { "current_dir": "/work/Home" },
+  "context_window": { "used_percentage": 42 },
+  "rate_limits": {
+    "five_hour": { "resets_at": 1700007200, "used_percentage": 15 },
+    "seven_day": { "resets_at": 1700300000, "used_percentage": 50 }
+  },
+  "cost": { "total_cost_usd": 2.1, "total_duration_ms": 5400000 }
+}</code></pre>
+<p>And the minimum the kit tolerates — this renders fine, with a one-segment line 1:</p>
+<pre><code>{ "model": { "display_name": "Sonnet 5 (1M context)" }, "cwd": "/work/solo" }</code></pre>
+<h3>The guard rule</h3>
+<p><strong>No read of this payload may raise.</strong> Not a missing key, not a null, not a wrong type, not an empty object. The statusline runs on <em>every</em> Claude Code render inside the user's terminal chrome; a crash there is constant, noisy, and reads as Claude Code being broken — strictly worse than a missing field.</p>
+<p>Each implementation has exactly one guard idiom, applied uniformly:</p>
+<table><thead><tr><th></th><th>Idiom</th><th>How</th></tr></thead><tbody><tr><td><strong>bash</strong></td><td><code>jq //</code> + <code>is_set</code></td><td>The <code>//</code> operator supplies a default inside the single <code>jq</code> expression; <code>is_set</code> then tests for empty-or-<code>null</code> before a segment is built.</td></tr><tr><td><strong>PowerShell</strong></td><td><code>Get-Safe</code></td><td>Walks a path array inside a <code>try</code>, returning <code>$default</code> on any failure or null.</td></tr></tbody></table>
+<pre><code>(.workspace.current_dir // .cwd // "")          # bash: fallback chain, inline default</code></pre>
+<pre><code>Get-Safe $data @("workspace","current_dir") ""  # PowerShell: guarded path walk</code></pre>
+<p>The parse is a <strong>seam</strong>: all nine fields are reduced to scalars with defaults already applied, in one place. No segment code below that point ever touches the JSON, so a payload change is a one-line fix rather than a hunt.</p>
+<h3>Two absences that mean different things</h3>
+<p>Worth being precise about, because it drives the drop-don't-zero rule:</p>
+<ul><li><strong>Field absent</strong> — Claude Code didn't supply it. Common and expected: <code>context_window</code> and <code>rate_limits</code> are omitted entirely until a session has usage, which is why line 1 is short on a brand-new session (<strong>CSK-0011</strong>).</li><li><strong>Field present and zero</strong> — genuinely zero. <code>0%</code> context used, <code>$0.00</code> spent.</li></ul>
+<p>Rendering <code>⏳ [0h0m] 0%</code> for the first case would be actively misleading, and the two are indistinguishable once a default has been substituted. So segments <strong>drop</strong> rather than zero.</p>
+<h2>Config: <code>~/.claude/settings.json</code></h2>
+<p>The kit's install mode is the only thing that writes to disk, and this is the file. It's Claude Code's own settings file, shared with every other setting the user has — which is why the installer <strong>merges</strong> rather than writes.</p>
+<h3>The key the kit owns</h3>
+<pre><code>{
+  "statusLine": {
+    "type": "command",
+    "command": "/Users/you/.claude/statusline-command.sh"
+  }
+}</code></pre>
+<table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody><tr><td><code>type</code></td><td>Always <code>"command"</code></td></tr><tr><td><code>command</code></td><td>Absolute path to the installed script (bash), or a full PowerShell invocation (Windows)</td></tr></tbody></table>
+<p>On Windows the command is a wrapper rather than a bare path:</p>
+<pre><code>pwsh -NoProfile -ExecutionPolicy Bypass -File "C:\Users\you\.claude\statusline.ps1"</code></pre>
+<p>with <code>powershell</code> substituted for <code>pwsh</code> when installing under Windows PowerShell 5.1.</p>
+<p><code>statusLine</code> is the <strong>only</strong> key the kit reads or writes. Everything else in the file is preserved untouched — the merge behaviour and its failure modes are specified in <a href="install-and-distribution.md">Install &amp; Distribution</a>.</p>
+<h3>Installed artifacts</h3>
+<table><thead><tr><th>Path</th><th>What</th></tr></thead><tbody><tr><td><code>~/.claude/statusline-command.sh</code></td><td>The installed bash script</td></tr><tr><td><code>~/.claude/statusline.ps1</code></td><td>The installed PowerShell script</td></tr><tr><td><code>~/.claude/settings.json</code></td><td>Claude Code's settings, with <code>statusLine</code> merged in</td></tr><tr><td><code>~/.claude/settings.json.bak-&lt;YYYYMMDDHHMMSS&gt;</code></td><td>A backup, written on <strong>every</strong> install run</td></tr></tbody></table>
+<p>Backups accumulate — one per install — and are never cleaned up, including on a pure refresh that changes nothing (<strong>CSK-0009</strong>). That's deliberate for now (a lost setting is worse than a stray file), and a proper <code>uninstall</code> is tracked as <strong>CSK-0001</strong>.</p>
+<h2>The <code>SL_NOW</code> seam</h2>
+<p>The single environment variable the kit reads, and the only nondeterminism in the program:</p>
+<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Set</strong></td><td>Both scripts use its value as "now" (unix seconds) for the rate-limit countdowns.</td></tr><tr><td><strong>Unset</strong></td><td>Both use the real clock.</td></tr><tr><td><strong>In normal use</strong></td><td>Unset. Zero runtime effect.</td></tr></tbody></table>
+<p>Countdowns are <code>resets_at − now</code>, which would make output non-reproducible and the golden tests impossible. Isolating the clock to one variable makes the render a <strong>pure function of (stdin JSON, <code>SL_NOW</code>, filesystem)</strong> — which is exactly what the test suite depends on. The test value is <code>1700000000</code>.</p>
+<p>The one remaining input that <em>isn't</em> pinned is the filesystem: the 🌿 branch segment walks up from the working directory looking for <code>.git/HEAD</code>. The fixtures all point at non-repo paths so the goldens bake in <code>🌿 ---</code>, which keeps them stable but means branch detection has no coverage at all (<strong>CSK-0007</strong>).</p>
+<p>See <a href="testing.md#the-clock-seam">Testing</a>.</p>
+</main></body></html>

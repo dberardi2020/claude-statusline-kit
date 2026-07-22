@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Install &amp; Distribution</title><style>
+:root{--bg:#f7f8fa;--fg:#181820;--muted:#565666;--line:#e5e7ec;--code-bg:#eef0f4;--accent:#4577d1;--link:#3a67b8}
+@media(prefers-color-scheme:dark){:root{--bg:#080a0e;--fg:#e9ecf3;--muted:#a2a7b8;--line:#232735;--code-bg:#12141b;--accent:#5b8de0;--link:#6f9ae6}}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding:64px 28px 120px}
+h1{font-size:2rem;line-height:1.2;margin:0 0 .3em;letter-spacing:-.02em}
+h2{font-size:1.35rem;margin:2.2em 0 .5em;padding-bottom:.25em;border-bottom:1px solid var(--line)}
+h3{font-size:1.08rem;margin:1.8em 0 .4em}
+p{margin:.7em 0}
+a{color:var(--link);text-decoration:none;border-bottom:1px solid transparent}
+a:hover{border-bottom-color:var(--link)}
+code{background:var(--code-bg);padding:.12em .4em;border-radius:4px;font:.86em/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code-bg);padding:16px 18px;border-radius:8px;overflow-x:auto;border:1px solid var(--line)}
+pre code{background:none;padding:0;font-size:.85em}
+ul,ol{padding-left:1.4em;margin:.7em 0}
+li{margin:.3em 0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:var(--code-bg);border-radius:0 6px 6px 0;color:var(--muted)}
+blockquote strong{color:var(--fg)}
+table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:.92em;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:.5em .7em;text-align:left;vertical-align:top}
+th{background:var(--code-bg);font-weight:600}
+hr{border:none;border-top:1px solid var(--line);margin:2em 0}
+strong{font-weight:650}
+</style></head><body><main class="wrap">
+<h1>Install &amp; Distribution</h1>
+<p>How the kit gets onto a machine. There's no build, no package, and no release artifact — each script <strong>installs itself</strong>, which is why setup is one download and one command.</p>
+<h2>The self-install mechanism</h2>
+<p>Each script has <a href="../product/concepts.md#mode">two modes</a> in one file. An argument check at the very top diverts to install mode and exits; everything else falls through to render.</p>
+<table><thead><tr><th></th><th>bash</th><th>PowerShell</th></tr></thead><tbody><tr><td><strong>Trigger</strong></td><td><code>--install</code>, <code>install</code>, or <code>--setup</code></td><td><code>-Install</code> or <code>-Setup</code></td></tr><tr><td><strong>Detects itself via</strong></td><td><code>${BASH_SOURCE[0]}</code>, resolved to an absolute path</td><td><code>$PSCommandPath</code></td></tr></tbody></table>
+<p>Bash resolves a relative <code>$BASH_SOURCE</code> to absolute before doing anything, and refuses to proceed if it can't find itself as a file — <code>curl … | bash -s -- --install</code> has no file to copy, so it fails with a clear message rather than installing something broken.</p>
+<h2>The algorithm</h2>
+<p>Both implementations do the same seven things in the same order:</p>
+<ol><li><strong>Hard-check dependencies.</strong> bash requires <code>jq</code> and aborts with a platform-appropriate hint (<code>brew install jq</code> / <code>apt install jq</code>) if it's missing. Failing here rather than at render time means the user learns about it <em>before</em> the statusline is wired in, not from a silently broken line afterwards. PowerShell has nothing to check.</li><li><strong>Note whether <code>~/.claude</code> already existed</strong> — used for the Claude Code detection in step 7.</li><li><strong>Ensure <code>~/.claude/</code> exists</strong> and copy the script into it. Bash <code>chmod +x</code> the copy. A script already running <em>from</em> the destination skips the copy rather than copying onto itself.</li><li><strong>Read any existing <code>statusLine.command</code></strong>, before writing anything, so step 6 can report honestly on what was there.</li><li><strong>Back up <code>settings.json</code></strong> to <code>settings.json.bak-&lt;YYYYMMDDHHMMSS&gt;</code>. This happens on <strong>every</strong> install run, before any modification. A missing settings file is first created as <code>{}</code>.</li><li><strong>Merge</strong> the <code>statusLine</code> entry into the JSON — never overwrite the whole file.</li><li><strong>Report</strong>, including the clash and Claude-Code-detection cases below.</li></ol>
+<h2>The merge, and why it's careful</h2>
+<p><code>~/.claude/settings.json</code> is Claude Code's own settings file. It holds the user's permissions, environment variables, hooks, model preferences — things far more valuable than a statusline. Clobbering it would be an unrecoverable own-goal for a cosmetic tool.</p>
+<p>So the write is a <strong>read-modify-write of a single key</strong>:</p>
+<pre><code>jq --arg cmd "$dest" '.statusLine = {type:"command", command:$cmd}' "$settings" &gt; "$tmp"</code></pre>
+<pre><code>$cfg.statusLine = [pscustomobject]@{ type = 'command'; command = $newCmd }
+($cfg | ConvertTo-Json -Depth 20) | Set-Content -LiteralPath $settings -Encoding UTF8</code></pre>
+<p>Bash writes through a <strong>temp file</strong> and only <code>mv</code>s it into place if <code>jq</code> succeeded, so a parse failure can't leave a truncated settings file behind.</p>
+<h3>Four cases the installer handles</h3>
+<table><thead><tr><th>Case</th><th>Behaviour</th></tr></thead><tbody><tr><td><strong>No <code>statusLine</code> configured</strong></td><td>Added. Normal path.</td></tr><tr><td><strong>The kit's own <code>statusLine</code> already there</strong></td><td>Replaced with itself and reported as a <strong>refresh</strong> — <code>(refreshed your existing Statusline Kit install)</code>. No warning.</td></tr><tr><td>**A <em>different</em> <code>statusLine</code> configured**</td><td>Replaced, but <strong>announced</strong> — prints the previous command and the backup path so the user can restore it. Never silent.</td></tr><tr><td><strong><code>settings.json</code> isn't valid JSON</strong></td><td><strong>Abort.</strong> The file is left untouched, the backup remains, and a manual snippet is printed for the user to paste. Exit 1.</td></tr></tbody></table>
+<p>The clash case is the one that matters most: silently eating another tool's statusline would be a genuinely bad citizen, and the user might not notice for days. The backup path is printed alongside precisely so the fix is one <code>cp</code> away.</p>
+<p>The refresh-vs-clash distinction is why step 4 reads the existing command <em>before</em> writing — and why the bash path strips CR from that read. A stray <code>\r</code> from a Windows <code>jq.exe</code> would make the kit's own entry compare unequal to its destination, so every re-install would warn as though it were clobbering a stranger. See <a href="implementations.md#bash--crlf-from-a-windows-jq">Implementations</a>.</p>
+<h3>Claude Code detection</h3>
+<p>Last, the installer checks whether Claude Code looks present at all — <code>claude</code> on <code>PATH</code>, or a pre-existing <code>~/.claude</code>. If neither, it still writes the config (it's harmless and correct) but notes that Claude Code wasn't detected and points at the install page, so a user who ran the installer on the wrong machine finds out immediately.</p>
+<h2>Distribution</h2>
+<p>There is no release pipeline. The scripts are served <strong>raw from <code>main</code></strong> on GitHub:</p>
+<pre><code>curl -fsSLO https://raw.githubusercontent.com/dberardi2020/claude-statusline-kit/main/statusline-command.sh
+bash statusline-command.sh --install</code></pre>
+<pre><code>irm https://raw.githubusercontent.com/dberardi2020/claude-statusline-kit/main/statusline.ps1 -OutFile statusline.ps1
+./statusline.ps1 -Install</code></pre>
+<p>Two consequences worth naming:</p>
+<ul><li><strong><code>main</code> is what users get.</strong> There's no staging between a merge and a user's next download, which is exactly why the parity suite is merge-blocking.</li><li><strong>There's no version stamp.</strong> Nothing in the script records which revision it is, so neither the user nor the installer can tell a current copy from a year-old one. Part of what the <strong>CSK-0001</strong> command family would address.</li></ul>
+<h3>Download-then-run, not pipe-to-shell</h3>
+<p>The documented instructions download the file first and run it as a second step, rather than <code>curl … | bash</code>. Two reasons: the user can read what they're about to run, and the installer <strong>needs a real file on disk</strong> to copy into <code>~/.claude/</code> — bash's <code>[ -f "$src" ]</code> check rejects the piped case explicitly.</p>
+<h3><code>llms.txt</code></h3>
+<p>The repo root carries an <a href="../../llms.txt"><code>llms.txt</code></a> — a short machine-readable summary of what the kit is, the install commands for both platforms, and links to the raw scripts and the docs. It exists so a coding agent pointed at the repo can perform the install without reading the whole README. The README carries a matching paste-ready prompt for the same purpose.</p>
+<h2>What doesn't exist yet</h2>
+<p>There is <strong>no uninstall, update, or repair</strong> command. Today <code>--install</code> is the entire lifecycle, and everything else is manual:</p>
+<table><thead><tr><th>Want to</th><th>Today</th></tr></thead><tbody><tr><td><strong>Update</strong></td><td>Re-download and re-run <code>--install</code>. It overwrites the copy, writes a fresh backup, and reports a refresh.</td></tr><tr><td><strong>Uninstall</strong></td><td>Delete the <code>statusLine</code> key from <code>settings.json</code> (or restore a <code>.bak-*</code>), delete the script, delete the backups.</td></tr><tr><td><strong>Repair</strong></td><td>Re-run <code>--install</code>, or restore a backup by hand.</td></tr></tbody></table>
+<p>A first-class family — <code>install</code> · <code>update</code> · <code>reinstall</code> · <code>uninstall</code> · <code>repair</code> — is tracked as <strong>CSK-0001</strong>, mirroring Terminal Launcher's <strong>TLA-0020</strong>. The safe merge described above is the piece it would reuse.</p>
+<p>Backups also accumulate one-per-install and are never cleaned up — including on a pure refresh that changes nothing, so a day of iterating can leave half a dozen byte-identical files behind (<strong>CSK-0009</strong>). The current policy errs deliberately: a lost setting is worse than a stray file.</p>
+<h2>Testing the installer</h2>
+<p><code>tests/install.sh</code> runs the bash installer against <strong>throwaway <code>HOME</code> directories</strong>, so a real <code>~/.claude</code> is never touched. It asserts the merge preserves other keys, a backup is written, a foreign <code>statusLine</code> is announced rather than silently replaced, a re-install is a no-warn refresh, and invalid JSON aborts leaving the file untouched.</p>
+<p>The PowerShell installer has <strong>no automated coverage</strong> — the suite is bash-only. See <a href="testing.md#install-mode-tests">Testing</a>.</p>
+</main></body></html>

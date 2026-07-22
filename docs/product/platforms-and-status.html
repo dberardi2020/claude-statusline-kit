@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Platforms &amp; Status</title><style>
+:root{--bg:#f7f8fa;--fg:#181820;--muted:#565666;--line:#e5e7ec;--code-bg:#eef0f4;--accent:#4577d1;--link:#3a67b8}
+@media(prefers-color-scheme:dark){:root{--bg:#080a0e;--fg:#e9ecf3;--muted:#a2a7b8;--line:#232735;--code-bg:#12141b;--accent:#5b8de0;--link:#6f9ae6}}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding:64px 28px 120px}
+h1{font-size:2rem;line-height:1.2;margin:0 0 .3em;letter-spacing:-.02em}
+h2{font-size:1.35rem;margin:2.2em 0 .5em;padding-bottom:.25em;border-bottom:1px solid var(--line)}
+h3{font-size:1.08rem;margin:1.8em 0 .4em}
+p{margin:.7em 0}
+a{color:var(--link);text-decoration:none;border-bottom:1px solid transparent}
+a:hover{border-bottom-color:var(--link)}
+code{background:var(--code-bg);padding:.12em .4em;border-radius:4px;font:.86em/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code-bg);padding:16px 18px;border-radius:8px;overflow-x:auto;border:1px solid var(--line)}
+pre code{background:none;padding:0;font-size:.85em}
+ul,ol{padding-left:1.4em;margin:.7em 0}
+li{margin:.3em 0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:var(--code-bg);border-radius:0 6px 6px 0;color:var(--muted)}
+blockquote strong{color:var(--fg)}
+table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:.92em;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:.5em .7em;text-align:left;vertical-align:top}
+th{background:var(--code-bg);font-weight:600}
+hr{border:none;border-top:1px solid var(--line);margin:2em 0}
+strong{font-weight:650}
+</style></head><body><main class="wrap">
+<h1>Platforms &amp; Status</h1>
+<p>What you need to run the kit, which combinations are actually verified, and what's knowingly unsupported or deferred.</p>
+<h2>Requirements</h2>
+<table><thead><tr><th></th><th>macOS / Linux</th><th>Windows</th></tr></thead><tbody><tr><td><strong>Script</strong></td><td><code>statusline-command.sh</code></td><td><code>statusline.ps1</code></td></tr><tr><td><strong>Shell</strong></td><td>bash 3.2+</td><td>Windows PowerShell 5.1, or PowerShell 7</td></tr><tr><td><strong>JSON parsing</strong></td><td><a href="https://jqlang.github.io/jq/"><code>jq</code></a> — required at install <strong>and</strong> render</td><td>built in (<code>ConvertFrom-Json</code>)</td></tr><tr><td><strong>Terminal</strong></td><td>UTF-8 + ANSI color</td><td>UTF-8 + ANSI color (Windows Terminal recommended)</td></tr></tbody></table>
+<p><code>jq</code> is the kit's only external dependency, and only on the bash side. Everything else is guaranteed present on its platform — which is precisely the argument for two native-shell scripts over one shared runtime (<a href="../decisions/0001-two-native-shell-scripts-over-node.md">ADR 0001</a>).</p>
+<h2>Platform status</h2>
+<table><thead><tr><th>Platform</th><th>Shell</th><th>Status</th><th>Verified by</th></tr></thead><tbody><tr><td><strong>Linux</strong></td><td>bash</td><td>✅ Supported</td><td>CI — render goldens + install-mode tests on every push</td></tr><tr><td><strong>macOS</strong></td><td>bash</td><td>✅ Supported</td><td>Local development machine; same script as the CI-covered Linux leg</td></tr><tr><td><strong>Windows</strong></td><td>PowerShell 7</td><td>✅ Supported</td><td>CI — render goldens on <code>windows-latest</code>, under the OEM codepage</td></tr><tr><td><strong>Windows</strong></td><td>Windows PowerShell 5.1</td><td>✅ Supported</td><td>CI — same goldens, separate job; this is the version the BOM fix targets</td></tr><tr><td><strong>Windows</strong></td><td>bash (Git Bash / MSYS / Cygwin)</td><td>⚠️ <strong>Unsupported</strong></td><td>— see below</td></tr></tbody></table>
+<h3>What CI actually proves</h3>
+<p>Both platforms are compared against the <strong>same golden files</strong>, so a green run on both <em>is</em> the parity proof rather than two independent smoke tests. The Windows jobs deliberately force the OEM console codepage (<code>chcp 437</code>) first, so a runner's UTF-8 default can't hide a console-decode bug — which it did once before.</p>
+<p>Coverage gaps that are known and tracked:</p>
+<ul><li><strong>No local macOS PowerShell run</strong> — there's no <code>pwsh</code> on the primary Mac, so the PowerShell leg is verified only in CI and on a Windows box (<strong>CSK-0005</strong>).</li><li><strong>No branch-segment coverage</strong> — every render fixture points at a non-repo, so <code>🌿 ---</code> is baked into all goldens and the suite structurally can't catch branch-detection divergence (<strong>CSK-0007</strong>).</li><li><strong>No Git-Bash + Windows-<code>jq</code> leg</strong> — the CRLF-stripping guard in the bash script has no CI coverage (<strong>CSK-0004</strong>).</li></ul>
+<h2>Unsupported: bash on Windows</h2>
+<p>Running <code>statusline-command.sh</code> under Git Bash, MSYS, or Cygwin is <strong>not supported</strong>. Windows users run <code>statusline.ps1</code>. Two concrete reasons, both left unfixed on purpose:</p>
+<ul><li><strong>The branch walk doesn't terminate.</strong> The loop walks up until it reaches <code>/</code>, but on a Windows-style path <code>dirname</code> goes <code>C:/Users</code> → <code>C:</code> → <code>.</code> → <code>.</code> and never gets there (<strong>CSK-0006</strong>). Unix paths are unaffected.</li><li><strong>Path translation breaks re-install detection.</strong> MSYS rewrites the path <code>jq</code> is handed, so <code>settings.json</code> stores a <code>C:/…</code> path while the script holds a <code>/…</code> one, and a refresh always reports as a clash. The install test skips that one assertion there.</li></ul>
+<p>Both are consequences of keeping the bash script platform-pure rather than importing Windows path handling into it.</p>
+<h2>Terminal compatibility</h2>
+<p>The kit emits UTF-8 (block characters <code>▓░</code>, box-drawing <code>─</code>, and astral-plane emoji) plus palette-indexed ANSI SGR codes. Anything that renders those correctly will render the statusline correctly.</p>
+<p>Two known rough edges:</p>
+<ul><li><strong>Color fidelity varies by terminal.</strong> Green/yellow/red are palette indices (32/33/31), so each terminal maps them to its own theme RGB — notably muted against Windows Terminal's default next to the pinned bright white. A move to 24-bit truecolor is tracked as <strong>CSK-0002</strong>.</li><li><strong>PowerShell 5.1 needs the BOM.</strong> <code>statusline.ps1</code> carries a UTF-8 BOM on line 1. Without it, PS 5.1 reads the file as Windows-1252, mangles the emoji, and fails to parse. It's load-bearing — don't strip it.</li></ul>
+<h2>Claude Code version compatibility</h2>
+<p>The kit reads Claude Code's session JSON but never asserts on its shape. Every field is guarded, and an absent one drops its segment rather than erroring — so a Claude Code release that renames or removes a field costs you one segment, not a broken statusline.</p>
+<p>The practical consequence you'll actually see: <code>context_window</code> and <code>rate_limits</code> are absent until a session has usage, so line 1 is short on a brand-new session (<strong>CSK-0011</strong>).</p>
+<h2>Deferred / not yet built</h2>
+<table><thead><tr><th></th><th>Status</th></tr></thead><tbody><tr><td><strong>Style catalogue</strong> — alternative layouts and segment sets</td><td>Deferred (roadmap)</td></tr><tr><td><strong>Builder / wizard</strong> — pick segments, generate the script</td><td>Deferred — <strong>CSK-0003</strong></td></tr><tr><td><strong>Management commands</strong> — <code>update</code>, <code>repair</code>, <code>uninstall</code> as first-class verbs</td><td>Deferred — <strong>CSK-0001</strong></td></tr><tr><td><strong>Truecolor output</strong></td><td>Deferred — <strong>CSK-0002</strong></td></tr><tr><td><strong>First-run placeholders</strong> for not-yet-known fields</td><td>Under consideration — <strong>CSK-0011</strong></td></tr></tbody></table>
+<p>The live backlog is <a href="../tickets/tickets.md"><code>tickets/tickets.md</code></a>.</p>
+</main></body></html>

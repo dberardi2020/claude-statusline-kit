@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Overview</title><style>
+:root{--bg:#f7f8fa;--fg:#181820;--muted:#565666;--line:#e5e7ec;--code-bg:#eef0f4;--accent:#4577d1;--link:#3a67b8}
+@media(prefers-color-scheme:dark){:root{--bg:#080a0e;--fg:#e9ecf3;--muted:#a2a7b8;--line:#232735;--code-bg:#12141b;--accent:#5b8de0;--link:#6f9ae6}}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding:64px 28px 120px}
+h1{font-size:2rem;line-height:1.2;margin:0 0 .3em;letter-spacing:-.02em}
+h2{font-size:1.35rem;margin:2.2em 0 .5em;padding-bottom:.25em;border-bottom:1px solid var(--line)}
+h3{font-size:1.08rem;margin:1.8em 0 .4em}
+p{margin:.7em 0}
+a{color:var(--link);text-decoration:none;border-bottom:1px solid transparent}
+a:hover{border-bottom-color:var(--link)}
+code{background:var(--code-bg);padding:.12em .4em;border-radius:4px;font:.86em/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code-bg);padding:16px 18px;border-radius:8px;overflow-x:auto;border:1px solid var(--line)}
+pre code{background:none;padding:0;font-size:.85em}
+ul,ol{padding-left:1.4em;margin:.7em 0}
+li{margin:.3em 0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:var(--code-bg);border-radius:0 6px 6px 0;color:var(--muted)}
+blockquote strong{color:var(--fg)}
+table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:.92em;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:.5em .7em;text-align:left;vertical-align:top}
+th{background:var(--code-bg);font-weight:600}
+hr{border:none;border-top:1px solid var(--line);margin:2em 0}
+strong{font-weight:650}
+</style></head><body><main class="wrap">
+<h1>Overview</h1>
+<h2>The problem</h2>
+<p>Claude Code leaves several things about your session implicit, and each of them is something you end up wanting mid-task:</p>
+<ul><li><strong>Which model line am I actually on?</strong> You set it once and then forget, or a session starts on a different default than you assumed.</li><li><strong>How much context headroom is left?</strong> A compaction that arrives without warning interrupts a train of thought; one you can see coming, you can plan around — wrap up the current thread, or start a fresh session deliberately.</li><li><strong>How close am I to a rate-limit reset?</strong> Both the 5-hour and the 7-day window matter, and neither is visible until you hit it.</li><li><strong>What has this session cost, and how long have I been at it?</strong></li></ul>
+<p>None of that is hard to find — but every route to it means switching windows or running a command, which costs you the thing you were holding in your head.</p>
+<h2>The solution</h2>
+<p>A <strong>two-line statusline</strong> in Claude Code's own terminal chrome that keeps all of it continuously visible:</p>
+<pre><code>| 🤖 [Opus 4.8] | ▓▓▓▓░░░░░░ 42% | ⏳ [2h0m] 15% | 📅 [3d11h] 50% |
+───────────────────────────────────────────────────────────────────────
+| 📁 Home | 🌿 master | 💰 $2.10 | ⏱️ 1h30m |
+───────────────────────────────────────────────────────────────────────</code></pre>
+<ul><li><strong>Line 1 — what's moving.</strong> 🤖 model · a 10-cell context-fill bar and percent · ⏳ the 5-hour rate-limit window · 📅 the 7-day window.</li><li><strong>Line 2 — where you are.</strong> 📁 directory · 🌿 git branch · 💰 session cost · ⏱️ elapsed time.</li></ul>
+<p>Color is the whole interface. Percentages run <strong>green ≤60 · yellow ≤85 · red &gt;85</strong>. The rate-limit countdowns use the <em>inverse</em> scheme — colored by how much of the window is still left (<strong>&gt;60% left → red · 20–60% → yellow · &lt;20% → green</strong>) — so a window that's about to reset reads calm and one you'll be waiting on reads hot. Everything else stays white, which means any color on the line is telling you something.</p>
+<h2>Install is one command</h2>
+<p>There's nothing to clone and no runtime to install. Download the one script for your platform and run it with <code>--install</code>:</p>
+<pre><code>bash statusline-command.sh --install     # macOS / Linux</code></pre>
+<pre><code>./statusline.ps1 -Install                # Windows</code></pre>
+<p>It copies itself into <code>~/.claude/</code>, <strong>backs up</strong> your <code>settings.json</code>, and <strong>merges</strong> a <code>statusLine</code> entry into it — preserving every other key you have. Restart Claude Code and the line is there. See the <a href="user-guide.md">User Guide</a>.</p>
+<h2>How it's built</h2>
+<p>Claude Code invokes your <code>statusLine</code> command once per render and pipes it a JSON blob describing the session. The kit is that command: read the JSON, print two lines, exit. No daemon, no state between renders.</p>
+<p>It ships as <strong>two native-shell implementations</strong> — bash for macOS/Linux, PowerShell for Windows — rather than one cross-platform script, because a single implementation would need a runtime (Node) that Claude Code's native-binary installer doesn't put on your machine. The two are held in lockstep by tests that compare both against the same expected output. That reasoning is recorded in <a href="../decisions/0001-two-native-shell-scripts-over-node.md">ADR 0001</a>.</p>
+<h2>Who it's for</h2>
+<ul><li>Claude Code users on <strong>macOS, Linux, or Windows</strong> who want ambient session awareness without switching windows or running commands.</li><li>Anyone who works <strong>long sessions</strong> and wants to see a context compaction or a rate-limit reset coming rather than hitting it.</li><li>People who want cost and elapsed time visible <strong>while</strong> they work, not reconstructed afterwards.</li></ul>
+<h2>Design principles</h2>
+<ul><li><strong>Ambient, not noisy</strong> — readable in one glance; no color unless it means something.</li><li><strong>Degrade gracefully</strong> — a missing field drops its segment instead of erroring, so the line survives Claude Code releases and payload changes.</li><li><strong>Zero-config after install</strong> — the installer wires it in and backs up your settings; there is nothing else to tune.</li><li><strong>Cross-platform parity</strong> — the bash and PowerShell implementations produce the same layout from the same data, enforced in CI.</li></ul>
+<h2>Next</h2>
+<ul><li>The vocabulary behind all of this → <a href="concepts.md">Concepts</a>.</li><li>Installing it and reading every segment → <a href="user-guide.md">User Guide</a>.</li><li>What's verified where → <a href="platforms-and-status.md">Platforms &amp; Status</a>.</li></ul>
+</main></body></html>

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Concepts</title><style>
+:root{--bg:#f7f8fa;--fg:#181820;--muted:#565666;--line:#e5e7ec;--code-bg:#eef0f4;--accent:#4577d1;--link:#3a67b8}
+@media(prefers-color-scheme:dark){:root{--bg:#080a0e;--fg:#e9ecf3;--muted:#a2a7b8;--line:#232735;--code-bg:#12141b;--accent:#5b8de0;--link:#6f9ae6}}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;margin:0}
+.wrap{max-width:760px;margin:0 auto;padding:64px 28px 120px}
+h1{font-size:2rem;line-height:1.2;margin:0 0 .3em;letter-spacing:-.02em}
+h2{font-size:1.35rem;margin:2.2em 0 .5em;padding-bottom:.25em;border-bottom:1px solid var(--line)}
+h3{font-size:1.08rem;margin:1.8em 0 .4em}
+p{margin:.7em 0}
+a{color:var(--link);text-decoration:none;border-bottom:1px solid transparent}
+a:hover{border-bottom-color:var(--link)}
+code{background:var(--code-bg);padding:.12em .4em;border-radius:4px;font:.86em/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}
+pre{background:var(--code-bg);padding:16px 18px;border-radius:8px;overflow-x:auto;border:1px solid var(--line)}
+pre code{background:none;padding:0;font-size:.85em}
+ul,ol{padding-left:1.4em;margin:.7em 0}
+li{margin:.3em 0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:var(--code-bg);border-radius:0 6px 6px 0;color:var(--muted)}
+blockquote strong{color:var(--fg)}
+table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:.92em;display:block;overflow-x:auto}
+th,td{border:1px solid var(--line);padding:.5em .7em;text-align:left;vertical-align:top}
+th{background:var(--code-bg);font-weight:600}
+hr{border:none;border-top:1px solid var(--line);margin:2em 0}
+strong{font-weight:650}
+</style></head><body><main class="wrap">
+<h1>Concepts</h1>
+<p>The whole kit is five words. Learn these and you understand it.</p>
+<h2>Segment</h2>
+<p>A <strong>segment</strong> is one field on the statusline — an emoji label plus a value, separated from its neighbours by a white <code>|</code>. There are nine, across two lines:</p>
+<table><thead><tr><th>#</th><th>Segment</th><th>Shows</th><th>Source field(s)</th></tr></thead><tbody><tr><td>1</td><td>🤖 <strong>Model</strong></td><td>The model line you're on</td><td><code>model.display_name</code></td></tr><tr><td>2·3</td><td><strong>Context</strong></td><td>A 10-cell fill bar and percent</td><td><code>context_window.used_percentage</code></td></tr><tr><td>4</td><td>⏳ <strong>5-hour limit</strong></td><td>Countdown to reset, and usage %</td><td><code>rate_limits.five_hour.*</code></td></tr><tr><td>5</td><td>📅 <strong>7-day limit</strong></td><td>Countdown to reset, and usage %</td><td><code>rate_limits.seven_day.*</code></td></tr><tr><td>6</td><td>📁 <strong>Directory</strong></td><td>The leaf of the working directory</td><td><code>workspace.current_dir</code>, else <code>cwd</code></td></tr><tr><td>7</td><td>🌿 <strong>Branch</strong></td><td>Current git branch</td><td><code>.git/HEAD</code>, walked up from the cwd</td></tr><tr><td>8</td><td>💰 <strong>Cost</strong></td><td>Session cost so far</td><td><code>cost.total_cost_usd</code></td></tr><tr><td>9</td><td>⏱️ <strong>Elapsed</strong></td><td>Wall-clock time in session</td><td><code>cost.total_duration_ms</code></td></tr></tbody></table>
+<p>Each segment is computed <strong>independently</strong> of every other, from one or two fields of the session JSON. Nothing is derived from anything else on the line.</p>
+<p>The load-bearing property: a segment whose source field is missing <strong>drops out entirely</strong> rather than rendering a zero. A payload with no <code>rate_limits</code> produces a shorter line 1 — not a misleading <code>⏳ [0h0m] 0%</code>. This is what lets one script span Claude Code versions and payload shapes without sniffing for a version.</p>
+<h2>Line</h2>
+<p>The output is <strong>two lines, each followed by a rule</strong> — a 71-character run of <code>─</code>:</p>
+<pre><code>| 🤖 [Opus 4.8] | ▓▓▓▓░░░░░░ 42% | ⏳ [2h0m] 15% | 📅 [3d11h] 50% |
+───────────────────────────────────────────────────────────────────────
+| 📁 Home | 🌿 master | 💰 $2.10 | ⏱️ 1h30m |
+───────────────────────────────────────────────────────────────────────</code></pre>
+<p>The split is by <strong>volatility</strong>:</p>
+<ul><li><strong>Line 1 is variable-length</strong> — session state that moves. The model is always there; context and the two rate-limit windows appear as the data for them does. On a brand-new session, before any message has gone through, line 1 may be just the model.</li><li><strong>Line 2 is fixed</strong> — four segments, always. Where you are and what it's cost.</li></ul>
+<h2>Coloring</h2>
+<p>Color carries meaning, and there are exactly <strong>two schemes</strong> — deliberately inverse to each other:</p>
+<table><thead><tr><th>Scheme</th><th>Applies to</th><th>Rule</th></tr></thead><tbody><tr><td><strong>Usage</strong></td><td>Context fill %, both rate-limit percentages</td><td>green ≤60 · yellow ≤85 · red &gt;85</td></tr><tr><td><strong>Time left</strong></td><td>The two rate-limit countdowns</td><td>&gt;60% of the window left → <strong>red</strong> · 20–60% → <strong>yellow</strong> · &lt;20% → <strong>green</strong></td></tr></tbody></table>
+<p>The inversion is the point, and it's the part that surprises people first. A rate-limit window that just reset has <em>lots</em> of time left and <em>low</em> usage. The percentage reads green — you've barely used it. But the countdown reads red, because if you <em>do</em> hit the limit, you're a long way from relief.</p>
+<p>So on a fresh 5-hour window you see <code>⏳ [4h50m] 3%</code> with a <strong>red countdown and a green percent</strong>, and that's correct: plenty of budget, long time until reset. As the window burns down the countdown cools to green while the percentage heats toward red. The two halves of the segment answer different questions.</p>
+<p>Everything else — the labels, the pipes, the rules, and the ⏱️ elapsed timer — stays <strong>white</strong>. Any color on the line is a signal.</p>
+<h2>Mode</h2>
+<p>Each script has <strong>two modes in one file</strong>:</p>
+<table><thead><tr><th>Mode</th><th>Invoked by</th><th>Does</th></tr></thead><tbody><tr><td><strong>Render</strong></td><td>Claude Code, once per render, with session JSON on stdin</td><td>Prints the two lines and exits. The default.</td></tr><tr><td><strong>Install</strong></td><td>You, once: <code>--install</code> (bash) / <code>-Install</code> (PowerShell)</td><td>Copies the script into <code>~/.claude/</code> and merges a <code>statusLine</code> entry into <code>~/.claude/settings.json</code>, backing it up first.</td></tr></tbody></table>
+<p>One file doing both is why setup is <em>one download and one command</em> — there's nothing to clone, and no separate installer to trust.</p>
+<p>The install path is deliberately careful: it <strong>backs up</strong> <code>settings.json</code> before touching it, <strong>merges</strong> rather than overwrites so your other keys survive, <strong>announces</strong> rather than silently replaces an existing <code>statusLine</code> from some other tool, and <strong>aborts</strong> without writing if your settings file isn't valid JSON.</p>
+<h2>Parity</h2>
+<p>The kit maintains <strong>two implementations of one specification</strong>:</p>
+<table><thead><tr><th>Script</th><th>Shell</th><th>Platform</th></tr></thead><tbody><tr><td><code>statusline-command.sh</code></td><td>bash (3.2-safe)</td><td>macOS / Linux</td></tr><tr><td><code>statusline.ps1</code></td><td>PowerShell (5.1-safe)</td><td>Windows</td></tr></tbody></table>
+<p>They are not ports that drifted apart. They're held in behavioral lockstep by <strong>golden tests</strong>: a set of fixture payloads, a set of expected output files, and two runners that feed the fixtures through their own script and compare against the <strong>same</strong> goldens. A green run on both platforms <em>is</em> the proof of parity.</p>
+<p><strong>Bash is the reference implementation</strong> — the goldens are generated from it, and every parity bug found so far has been PowerShell drifting from a correct bash. Countdowns would make the output non-deterministic, so both scripts read "now" from an <code>SL_NOW</code> environment variable when it's set; it's unset in normal use and exists purely for the tests.</p>
+<p>Why two scripts rather than one shared runtime is recorded in <a href="../decisions/0001-two-native-shell-scripts-over-node.md">ADR 0001</a> — the short version is that a Node implementation would assume <code>node</code> on <code>PATH</code>, and Claude Code's native-binary installer doesn't put one there.</p>
+<h2>The degradation principle</h2>
+<p>Underneath all five: <strong>every field read is guarded</strong>. A missing key, a null, or an unexpected shape degrades its segment — to a default, or out of the line entirely — and never raises.</p>
+<p>The statusline sits in your terminal chrome on <em>every</em> render. A crash there is far worse than a missing field: it's noisy, it's constant, and it looks like Claude Code itself is broken. So the kit never asserts on the payload shape — it reads what it recognizes and ignores the rest.</p>
+<hr>
+<p><em>This is the single source for the concept model. Field-by-field detail: <a href="../technical/rendering.md">technical/rendering.md</a>. The decisions behind it: <a href="../decisions/README.md"><code>decisions/</code></a>.</em></p>
+</main></body></html>
