@@ -137,35 +137,13 @@ Today the kit ships one layout in two shells. Where it's headed:
 
 ## Documentation
 
-Full docs live in [`docs/`](docs/README.md), split by audience:
+Full docs live in [`docs/`](docs/README.md):
 
-**[Product](docs/product/README.md)** — no code assumed:
+- **[Product](docs/product/README.md)** — what it shows and how to install it, no code assumed.
+- **[Technical](docs/technical/README.md)** — the rendering spec, the two implementations, install, testing.
+- **[Decisions](docs/decisions/README.md)** — the architecture decision records (*why* it's built this way).
 
-- **[Overview](docs/product/overview.md)** — the problem it solves and who it's for.
-- **[Concepts](docs/product/concepts.md)** — Segment · Line · Coloring · Mode · Parity.
-- **[User Guide](docs/product/user-guide.md)** — install, read every segment, troubleshoot,
-  uninstall.
-- **[Platforms & Status](docs/product/platforms-and-status.md)** — what's verified where.
-
-**[Technical](docs/technical/README.md)** — for working on the code:
-
-- **[Architecture](docs/technical/architecture.md)** — the two modes, the flow, the seams.
-- **[Rendering](docs/technical/rendering.md)** — *the specification*: layout, per-segment
-  computation, the color model.
-- **[Implementations](docs/technical/implementations.md)** — bash vs PowerShell, and the
-  known divergences.
-- **[Data Model & Config](docs/technical/data-model-and-config.md)** — the session-JSON
-  contract and `settings.json`.
-- **[Install & Distribution](docs/technical/install-and-distribution.md)** — the
-  self-install mechanism.
-- **[Module Reference](docs/technical/module-reference.md)** · **[Tech
-  Stack](docs/technical/tech-stack.md)** · **[Testing](docs/technical/testing.md)**
-
-**Primary source** — **[decisions/](docs/decisions/README.md)**, the architecture decision
-records (*why* it's built this way).
-
-The styled one-page reference is [`docs/statusline.html`](docs/statusline.html), which
-carries the same content as this README in a browsable form.
+The styled one-page reference is [`docs/statusline.html`](docs/statusline.html) — the same content in browsable form.
 
 ## License
 
