@@ -1,13 +1,14 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Testing</title><style>
-:root{--bg:#f7f8fa;--fg:#181820;--muted:#565666;--line:#e5e7ec;--code-bg:#eef0f4;--accent:#4577d1;--link:#3a67b8}
-@media(prefers-color-scheme:dark){:root{--bg:#080a0e;--fg:#e9ecf3;--muted:#a2a7b8;--line:#232735;--code-bg:#12141b;--accent:#5b8de0;--link:#6f9ae6}}
+:root{--bg:#fbfbfa;--fg:#22201d;--muted:#6b6862;--line:#e6e3dd;--code-bg:#f0eee9;--accent:#b5651d;--link:#a1571a}
+@media(prefers-color-scheme:dark){:root{--bg:#1a1917;--fg:#e6e3dd;--muted:#9a968e;--line:#332f2a;--code-bg:#26241f;--accent:#d99a5b;--link:#e0a866}}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;margin:0}
 .wrap{max-width:760px;margin:0 auto;padding:64px 28px 120px}
 h1{font-size:2rem;line-height:1.2;margin:0 0 .3em;letter-spacing:-.02em}
 h2{font-size:1.35rem;margin:2.2em 0 .5em;padding-bottom:.25em;border-bottom:1px solid var(--line)}
 h3{font-size:1.08rem;margin:1.8em 0 .4em}
+h1,h2,h3,h4,h5,h6{scroll-margin-top:1.2em}
 p{margin:.7em 0}
 a{color:var(--link);text-decoration:none;border-bottom:1px solid transparent}
 a:hover{border-bottom-color:var(--link)}
@@ -18,48 +19,50 @@ ul,ol{padding-left:1.4em;margin:.7em 0}
 li{margin:.3em 0}
 blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:var(--code-bg);border-radius:0 6px 6px 0;color:var(--muted)}
 blockquote strong{color:var(--fg)}
-table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:.92em;display:block;overflow-x:auto}
+.tablewrap{overflow-x:auto;margin:1.1em 0}
+table{border-collapse:collapse;width:100%;font-size:.92em}
 th,td{border:1px solid var(--line);padding:.5em .7em;text-align:left;vertical-align:top}
+td:first-child{white-space:nowrap}
 th{background:var(--code-bg);font-weight:600}
 hr{border:none;border-top:1px solid var(--line);margin:2em 0}
 strong{font-weight:650}
 </style></head><body><main class="wrap">
-<h1>Testing</h1>
+<h1 id="testing">Testing</h1>
 <p>The kit maintains two implementations that must behave identically, so the suite is built around <strong>cross-platform parity</strong>: both scripts are run against the <em>same</em> expected outputs. A green run on both platforms <em>is</em> the parity proof — there's no shared code to unit-test instead.</p>
 <pre><code>bash tests/run.sh                 # render goldens, bash
 bash tests/install.sh             # install mode, bash
 pwsh tests/run.ps1                # render goldens, PowerShell 7
 powershell -File tests\run.ps1    # render goldens, Windows PowerShell 5.1</code></pre>
-<h2>The clock seam</h2>
+<h2 id="the-clock-seam">The clock seam</h2>
 <p>Rate-limit segments render a countdown (<code>resets_at − now</code>), which would make output non-deterministic. Both scripts therefore read <code>now</code> from the <strong><code>SL_NOW</code></strong> environment variable when it is set, falling back to the real clock otherwise. <code>SL_NOW</code> is unset in normal use and has zero runtime effect; it exists purely so tests produce stable, comparable output. The pinned test value is <code>1700000000</code>.</p>
 <p>With the clock pinned, a render is a <strong>pure function of (stdin JSON, <code>SL_NOW</code>, filesystem)</strong> — which is what makes golden testing possible at all. See <a href="data-model-and-config.md#the-sl_now-seam">Data Model &amp; Config</a>.</p>
-<h2>Render golden tests</h2>
-<table><thead><tr><th>Piece</th><th>What</th></tr></thead><tbody><tr><td><code>tests/fixtures/*.json</code></td><td>Eight representative session payloads.</td></tr><tr><td><code>tests/golden/*.txt</code></td><td>The expected output, <strong>generated from the bash script</strong> — the reference implementation.</td></tr><tr><td><code>tests/run.sh</code> · <code>tests/run.ps1</code></td><td>Each feeds the fixtures through its own script and compares to the goldens.</td></tr></tbody></table>
+<h2 id="render-golden-tests">Render golden tests</h2>
+<div class="tablewrap"><table><thead><tr><th>Piece</th><th>What</th></tr></thead><tbody><tr><td><code>tests/fixtures/*.json</code></td><td>Eight representative session payloads.</td></tr><tr><td><code>tests/golden/*.txt</code></td><td>The expected output, <strong>generated from the bash script</strong> — the reference implementation.</td></tr><tr><td><code>tests/run.sh</code> · <code>tests/run.ps1</code></td><td>Each feeds the fixtures through its own script and compares to the goldens.</td></tr></tbody></table></div>
 <p>Because both runners compare to the <em>same</em> goldens, a green run on both platforms proves parity. Both normalize <code>\r</code> and trailing newlines before comparing, which is why the trailing-newline difference between the implementations sits outside the spec.</p>
-<h3>What the fixtures cover</h3>
-<table><thead><tr><th>Fixture</th><th>Exercises</th></tr></thead><tbody><tr><td><code>typical</code></td><td>The ordinary full payload.</td></tr><tr><td><code>green</code> · <code>yellow</code> · <code>red</code></td><td>The three usage-color thresholds.</td></tr><tr><td><code>no-ratelimits</code></td><td>Rate-limit segments dropping when absent.</td></tr><tr><td><code>past-reset</code></td><td>A <code>resets_at</code> in the past — must clamp to <code>0</code>, not go negative.</td></tr><tr><td><code>minimal</code></td><td>Defaults and dropped segments: only a model and a <code>cwd</code>.</td></tr><tr><td><code>countdown-red</code></td><td>An early window — <strong>low usage, hot countdown</strong> — proving the two colorings are independent.</td></tr></tbody></table>
-<h3>Regenerating</h3>
+<h3 id="what-the-fixtures-cover">What the fixtures cover</h3>
+<div class="tablewrap"><table><thead><tr><th>Fixture</th><th>Exercises</th></tr></thead><tbody><tr><td><code>typical</code></td><td>The ordinary full payload.</td></tr><tr><td><code>green</code> · <code>yellow</code> · <code>red</code></td><td>The three usage-color thresholds.</td></tr><tr><td><code>no-ratelimits</code></td><td>Rate-limit segments dropping when absent.</td></tr><tr><td><code>past-reset</code></td><td>A <code>resets_at</code> in the past — must clamp to <code>0</code>, not go negative.</td></tr><tr><td><code>minimal</code></td><td>Defaults and dropped segments: only a model and a <code>cwd</code>.</td></tr><tr><td><code>countdown-red</code></td><td>An early window — <strong>low usage, hot countdown</strong> — proving the two colorings are independent.</td></tr></tbody></table></div>
+<h3 id="regenerating">Regenerating</h3>
 <p>After an <em>intentional</em> format change. Make the change in <strong>bash first</strong>, regenerate, then bring PowerShell up to the new goldens:</p>
 <pre><code>for f in tests/fixtures/*.json; do
   SL_NOW=1700000000 bash statusline-command.sh &lt; "$f" &gt; "tests/golden/$(basename "$f" .json).txt"
 done</code></pre>
-<h3>Parity bugs this suite has caught</h3>
+<h3 id="parity-bugs-this-suite-has-caught">Parity bugs this suite has caught</h3>
 <p>All bash-correct, PowerShell drifted: rate-limit segments not dropping when absent, the context bar using banker's rounding instead of round-half-up, the context segment not dropping when absent, and <code>cwd</code> not preferring <code>workspace.current_dir</code>.</p>
-<h2>Install-mode tests</h2>
+<h2 id="install-mode-tests">Install-mode tests</h2>
 <p><code>tests/install.sh</code> runs the bash installer against throwaway <code>HOME</code> directories — the real <code>~/.claude</code> is never touched — and asserts that:</p>
 <ul><li>the <code>settings.json</code> merge preserves other keys,</li><li>a backup is written,</li><li>an existing <strong>foreign</strong> <code>statusLine</code> is announced rather than silently replaced,</li><li>re-installing the kit's own entry is a <strong>no-warn refresh</strong>,</li><li>invalid JSON <strong>aborts</strong> while leaving the file untouched.</li></ul>
 <p>The PowerShell installer has <strong>no automated coverage</strong>; the suite is bash-only.</p>
-<h2>Coverage gaps</h2>
+<h2 id="coverage-gaps">Coverage gaps</h2>
 <p>Known, tracked, and worth keeping in view — the suite is strong on parity and weak on breadth:</p>
-<table><thead><tr><th>Gap</th><th>Ticket</th></tr></thead><tbody><tr><td><strong>Branch detection is entirely untested.</strong> Every fixture's <code>cwd</code> points at a non-repo, so <code>🌿 ---</code> is baked into all goldens and the suite structurally cannot catch divergence in the <code>.git/HEAD</code> walk — which is how a real bash-vs-PowerShell difference on a detached HEAD went unnoticed. Needs a temp-repo test rather than a static-JSON golden.</td><td><strong>CSK-0007</strong></td></tr><tr><td><strong>No fixture supplies <code>resets_at</code> without <code>used_percentage</code></strong>, or omits the working directory — so two real behavioral divergences are invisible to the suite. See <a href="implementations.md#known-divergences">Implementations</a>.</td><td>—</td></tr><tr><td><strong>No PowerShell install-mode tests.</strong></td><td>—</td></tr><tr><td><strong>No local macOS PowerShell run</strong> — no <code>pwsh</code> on the primary Mac, so the PS leg is verified only in CI and on a Windows box.</td><td><strong>CSK-0005</strong></td></tr><tr><td><strong>No Git-Bash + Windows-<code>jq</code> leg</strong> — the CRLF-stripping guard has no CI coverage. Tests an unsupported config, hence low priority.</td><td><strong>CSK-0004</strong></td></tr></tbody></table>
-<h2>Platform notes</h2>
+<div class="tablewrap"><table><thead><tr><th>Gap</th><th>Ticket</th></tr></thead><tbody><tr><td><strong>Branch detection is entirely untested.</strong> Every fixture's <code>cwd</code> points at a non-repo, so <code>🌿 ---</code> is baked into all goldens and the suite structurally cannot catch divergence in the <code>.git/HEAD</code> walk — which is how a real bash-vs-PowerShell difference on a detached HEAD went unnoticed. Needs a temp-repo test rather than a static-JSON golden.</td><td><strong>CSK-0007</strong></td></tr><tr><td><strong>No fixture supplies <code>resets_at</code> without <code>used_percentage</code></strong>, or omits the working directory — so two real behavioral divergences are invisible to the suite. See <a href="implementations.md#known-divergences">Implementations</a>.</td><td>—</td></tr><tr><td><strong>No PowerShell install-mode tests.</strong></td><td>—</td></tr><tr><td><strong>No local macOS PowerShell run</strong> — no <code>pwsh</code> on the primary Mac, so the PS leg is verified only in CI and on a Windows box.</td><td><strong>CSK-0005</strong></td></tr><tr><td><strong>No Git-Bash + Windows-<code>jq</code> leg</strong> — the CRLF-stripping guard has no CI coverage. Tests an unsupported config, hence low priority.</td><td><strong>CSK-0004</strong></td></tr></tbody></table></div>
+<h2 id="platform-notes">Platform notes</h2>
 <ul><li><strong>PS 5.1 requires a UTF-8 BOM.</strong> Without it, PowerShell 5.1 reads the script as Windows-1252, mangles the astral-plane emoji, and fails to parse. The BOM on line 1 of <code>statusline.ps1</code> is load-bearing — do not strip it. Many editors and formatters remove BOMs silently, so check it first if the script suddenly won't run on 5.1.</li><li><strong>Console encoding must be pinned in the test runner.</strong> PS 5.1 decodes a child process's stdout using <code>[Console]::OutputEncoding</code>, which on a real Windows console is the OEM codepage (e.g. IBM437) — so the statusline's UTF-8 emoji come back as mojibake. CI's runner happened to default to UTF-8, which is why this passed there and only broke on an actual desktop. <code>run.ps1</code> pins <strong>both</strong> directions to <strong>BOM-less</strong> UTF-8 (<code>New-Object System.Text.UTF8Encoding $false</code> — the plain <code>[Text.Encoding]::UTF8</code> has <code>emitBOM=true</code>, which would prefix a BOM onto the child's stdin and break <code>ConvertFrom-Json</code>) and restores the prior encoding in a <code>finally</code>.</li><li><strong>Windows <code>jq.exe</code> emits CRLF.</strong> A native Windows <code>jq</code> (e.g. Chocolatey's) terminates lines with CRLF, so under Git Bash every parsed value carries a trailing <code>\r</code> — enough to break the bash arithmetic. <code>statusline-command.sh</code> strips CR at both <code>jq</code> boundaries (a no-op where <code>jq</code> emits LF).</li><li><strong><code>.gitattributes</code> pins <code>eol=lf</code>.</strong> A Windows checkout rewriting line endings would corrupt the bash script and break every golden comparison.</li></ul>
-<h2>Known limitation: bash on Windows</h2>
+<h2 id="known-limitation-bash-on-windows">Known limitation: bash on Windows</h2>
 <p>The bash script is scoped to <strong>macOS/Linux</strong> (Windows users run <code>statusline.ps1</code>), and running it under Git Bash is unsupported. In <code>install.sh</code>, the <em>re-install does not warn</em> assertion is <strong>skipped</strong> on Git Bash / MSYS / Cygwin: <code>jq --arg cmd "$dest"</code> passes through MSYS path translation, so <code>settings.json</code> stores a <code>C:/…</code> path while <code>$dest</code> stays <code>/…</code>, and the re-read never matches — so a refresh always warns. Rather than import Windows path-translation handling (<code>MSYS2_ARG_CONV_EXCL</code>) into a script deliberately kept platform-pure (see <a href="../decisions/0001-two-native-shell-scripts-over-node.md">ADR 0001</a>), the assertion is skipped there; the suite reads 7 passed + 1 skipped.</p>
 <p>A second, separate bash-on-Windows defect is tracked as <strong>CSK-0006</strong>: the branch walk never terminates on a Windows-style path outside a repo, because <code>dirname</code> reaches <code>.</code> rather than <code>/</code>.</p>
-<h2>CI</h2>
+<h2 id="ci">CI</h2>
 <p><code>.github/workflows/tests.yml</code> runs:</p>
-<table><thead><tr><th>Job</th><th>Runner</th><th>Steps</th></tr></thead><tbody><tr><td><strong>bash</strong></td><td><code>ubuntu-latest</code></td><td><code>tests/run.sh</code>, then <code>tests/install.sh</code></td></tr><tr><td><strong>powershell</strong></td><td><code>windows-latest</code></td><td><code>tests/run.ps1</code> under <strong>PowerShell 7</strong>, then again under <strong>Windows PowerShell 5.1</strong> — the version the BOM fix targets</td></tr></tbody></table>
+<div class="tablewrap"><table><thead><tr><th>Job</th><th>Runner</th><th>Steps</th></tr></thead><tbody><tr><td><strong>bash</strong></td><td><code>ubuntu-latest</code></td><td><code>tests/run.sh</code>, then <code>tests/install.sh</code></td></tr><tr><td><strong>powershell</strong></td><td><code>windows-latest</code></td><td><code>tests/run.ps1</code> under <strong>PowerShell 7</strong>, then again under <strong>Windows PowerShell 5.1</strong> — the version the BOM fix targets</td></tr></tbody></table></div>
 <p>Both Windows steps force the <strong>OEM console codepage</strong> (<code>chcp 437</code>) first, so a runner's UTF-8 default can no longer hide a console-decode bug the way it did once before.</p>
 <p>This makes parity a <strong>merge-blocking invariant</strong> and gives the PowerShell path real Windows coverage on every push — which matters more than usual here, because the scripts are served raw from <code>main</code> with no staging between a merge and a user's next download.</p>
 </main></body></html>

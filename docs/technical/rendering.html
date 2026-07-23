@@ -1,13 +1,14 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rendering</title><style>
-:root{--bg:#f7f8fa;--fg:#181820;--muted:#565666;--line:#e5e7ec;--code-bg:#eef0f4;--accent:#4577d1;--link:#3a67b8}
-@media(prefers-color-scheme:dark){:root{--bg:#080a0e;--fg:#e9ecf3;--muted:#a2a7b8;--line:#232735;--code-bg:#12141b;--accent:#5b8de0;--link:#6f9ae6}}
+:root{--bg:#fbfbfa;--fg:#22201d;--muted:#6b6862;--line:#e6e3dd;--code-bg:#f0eee9;--accent:#b5651d;--link:#a1571a}
+@media(prefers-color-scheme:dark){:root{--bg:#1a1917;--fg:#e6e3dd;--muted:#9a968e;--line:#332f2a;--code-bg:#26241f;--accent:#d99a5b;--link:#e0a866}}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;margin:0}
 .wrap{max-width:760px;margin:0 auto;padding:64px 28px 120px}
 h1{font-size:2rem;line-height:1.2;margin:0 0 .3em;letter-spacing:-.02em}
 h2{font-size:1.35rem;margin:2.2em 0 .5em;padding-bottom:.25em;border-bottom:1px solid var(--line)}
 h3{font-size:1.08rem;margin:1.8em 0 .4em}
+h1,h2,h3,h4,h5,h6{scroll-margin-top:1.2em}
 p{margin:.7em 0}
 a{color:var(--link);text-decoration:none;border-bottom:1px solid transparent}
 a:hover{border-bottom-color:var(--link)}
@@ -18,33 +19,35 @@ ul,ol{padding-left:1.4em;margin:.7em 0}
 li{margin:.3em 0}
 blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:var(--code-bg);border-radius:0 6px 6px 0;color:var(--muted)}
 blockquote strong{color:var(--fg)}
-table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:.92em;display:block;overflow-x:auto}
+.tablewrap{overflow-x:auto;margin:1.1em 0}
+table{border-collapse:collapse;width:100%;font-size:.92em}
 th,td{border:1px solid var(--line);padding:.5em .7em;text-align:left;vertical-align:top}
+td:first-child{white-space:nowrap}
 th{background:var(--code-bg);font-weight:600}
 hr{border:none;border-top:1px solid var(--line);margin:2em 0}
 strong{font-weight:650}
 </style></head><body><main class="wrap">
-<h1>Rendering</h1>
+<h1 id="rendering">Rendering</h1>
 <p><strong>This document is the specification.</strong> Both implementations must satisfy it byte-for-byte; where they disagree, one of them has a bug. <code>statusline-command.sh</code> is the reference — the goldens are generated from it — so a discrepancy is resolved in bash's favour unless bash is demonstrably wrong.</p>
 <p>For <em>how</em> each implementation realizes this, see <a href="implementations.md">Implementations</a>. For where the input comes from, see <a href="data-model-and-config.md">Data Model &amp; Config</a>.</p>
-<h2>The layout</h2>
+<h2 id="the-layout">The layout</h2>
 <p>Four lines of output, in this order:</p>
 <pre><code>| 🤖 [Opus 4.8] | ▓▓▓▓░░░░░░ 42% | ⏳ [2h0m] 15% | 📅 [3d11h] 50% |
 ───────────────────────────────────────────────────────────────────────
 | 📁 Home | 🌿 master | 💰 $2.10 | ⏱️ 1h30m |
 ───────────────────────────────────────────────────────────────────────</code></pre>
-<table><thead><tr><th>Element</th><th>Spec</th></tr></thead><tbody><tr><td><strong>Rule</strong></td><td>Exactly <strong>71</strong> × <code>─</code> (U+2500), white, emitted after each line.</td></tr><tr><td><strong>Delimiter</strong></td><td>`\</td><td>` (U+007C) in white, with <strong>one space</strong> on each side.</td></tr><tr><td><strong>Line boundaries</strong></td><td>Every line opens and closes with a delimiter, so each is fully bracketed.</td></tr><tr><td><strong>Line 1</strong></td><td>Variable-length. Model always; then context, 5-hour, and 7-day segments, each appended <strong>only if non-empty</strong>.</td></tr><tr><td><strong>Line 2</strong></td><td>Fixed. Always exactly four segments — every source has a default.</td></tr><tr><td><strong>Trailing newline</strong></td><td><strong>Unspecified.</strong> bash emits none (a single <code>printf</code> with no final <code>\n</code>); PowerShell emits one (<code>Write-Host</code>). Both test runners <code>TrimEnd</code> before comparing, so this is deliberately outside the contract.</td></tr></tbody></table>
+<div class="tablewrap"><table><thead><tr><th>Element</th><th>Spec</th></tr></thead><tbody><tr><td><strong>Rule</strong></td><td>Exactly <strong>71</strong> × <code>─</code> (U+2500), white, emitted after each line.</td></tr><tr><td><strong>Delimiter</strong></td><td>`\</td><td>` (U+007C) in white, with <strong>one space</strong> on each side.</td></tr><tr><td><strong>Line boundaries</strong></td><td>Every line opens and closes with a delimiter, so each is fully bracketed.</td></tr><tr><td><strong>Line 1</strong></td><td>Variable-length. Model always; then context, 5-hour, and 7-day segments, each appended <strong>only if non-empty</strong>.</td></tr><tr><td><strong>Line 2</strong></td><td>Fixed. Always exactly four segments — every source has a default.</td></tr><tr><td><strong>Trailing newline</strong></td><td><strong>Unspecified.</strong> bash emits none (a single <code>printf</code> with no final <code>\n</code>); PowerShell emits one (<code>Write-Host</code>). Both test runners <code>TrimEnd</code> before comparing, so this is deliberately outside the contract.</td></tr></tbody></table></div>
 <p>The variable/fixed split is by volatility: line 1 is session state that moves and may not exist yet, line 2 is context that always resolves.</p>
-<h2>The color model</h2>
+<h2 id="the-color-model">The color model</h2>
 <p>ANSI SGR codes, palette-indexed:</p>
-<table><thead><tr><th>Role</th><th>Code</th><th>Applied to</th></tr></thead><tbody><tr><td>Green</td><td><code>\033[32m</code></td><td>Usage ≤60% · countdown with &lt;20% of window left</td></tr><tr><td>Yellow</td><td><code>\033[33m</code></td><td>Usage ≤85% · countdown with 20–60% left</td></tr><tr><td>Red</td><td><code>\033[31m</code></td><td>Usage &gt;85% · countdown with &gt;60% left</td></tr><tr><td>White</td><td><code>\033[97m</code></td><td>Delimiters, rules, all labels, and every line-2 value</td></tr><tr><td>Reset</td><td><code>\033[0m</code></td><td>After every colored run</td></tr></tbody></table>
+<div class="tablewrap"><table><thead><tr><th>Role</th><th>Code</th><th>Applied to</th></tr></thead><tbody><tr><td>Green</td><td><code>\033[32m</code></td><td>Usage ≤60% · countdown with &lt;20% of window left</td></tr><tr><td>Yellow</td><td><code>\033[33m</code></td><td>Usage ≤85% · countdown with 20–60% left</td></tr><tr><td>Red</td><td><code>\033[31m</code></td><td>Usage &gt;85% · countdown with &gt;60% left</td></tr><tr><td>White</td><td><code>\033[97m</code></td><td>Delimiters, rules, all labels, and every line-2 value</td></tr><tr><td>Reset</td><td><code>\033[0m</code></td><td>After every colored run</td></tr></tbody></table></div>
 <p>There are exactly <strong>two coloring functions</strong>, and they are inverse to each other:</p>
-<h3>Usage coloring</h3>
+<h3 id="usage-coloring">Usage coloring</h3>
 <pre><code>pct ≤ 60  → green
 pct ≤ 85  → yellow
 otherwise → red</code></pre>
 <p>Applied to: the context bar (bar and percent together), the 5-hour percentage, the 7-day percentage.</p>
-<h3>Countdown coloring</h3>
+<h3 id="countdown-coloring">Countdown coloring</h3>
 <pre><code>rem = floor(100 × seconds_remaining / window_seconds)
 
 rem &gt; 60  → red
@@ -55,35 +58,35 @@ window ≤ 0 → white   (defensive; unreachable with the fixed windows below)</
 <p>Applied to: the 5-hour countdown (<code>window = 18000</code>) and the 7-day countdown (<code>window = 604800</code>).</p>
 <p>The inversion is intentional. A just-reset window has low usage (green percent) but a long wait if you <em>do</em> hit the limit (red countdown). The two halves of a rate-limit segment answer different questions and are colored independently — <code>⏳ [4h50m] 3%</code> renders a red countdown beside a green percent, and that is correct output.</p>
 <p>Everything not covered by these two rules is <strong>white</strong>. Notably the ⏱️ elapsed timer is white, not colored — it's information, not a signal.</p>
-<h2>Segment specifications</h2>
-<h3>1 · 🤖 Model</h3>
-<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Source</strong></td><td><code>model.display_name</code>, defaulting to <code>?</code></td></tr><tr><td><strong>Transform</strong></td><td>Strip every parenthetical group and surrounding whitespace (<code>(1M context)</code> → nothing), then trim</td></tr><tr><td><strong>Output</strong></td><td><code>🤖 </code> + white + <code>[</code> + name + <code>]</code> + reset</td></tr><tr><td><strong>Drops?</strong></td><td>Never — always present, defaulted</td></tr></tbody></table>
+<h2 id="segment-specifications">Segment specifications</h2>
+<h3 id="1-model">1 · 🤖 Model</h3>
+<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Source</strong></td><td><code>model.display_name</code>, defaulting to <code>?</code></td></tr><tr><td><strong>Transform</strong></td><td>Strip every parenthetical group and surrounding whitespace (<code>(1M context)</code> → nothing), then trim</td></tr><tr><td><strong>Output</strong></td><td><code>🤖 </code> + white + <code>[</code> + name + <code>]</code> + reset</td></tr><tr><td><strong>Drops?</strong></td><td>Never — always present, defaulted</td></tr></tbody></table></div>
 <p><code>Opus 4.8 (1M context)</code> → <code>🤖 [Opus 4.8]</code></p>
-<h3>2·3 · Context bar and percent</h3>
-<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Source</strong></td><td><code>context_window.used_percentage</code></td></tr><tr><td><strong>Percent</strong></td><td>Round to nearest integer, <strong>half-to-even</strong> (C <code>printf %.0f</code> semantics); clamp to ≥ 0</td></tr><tr><td><strong>Fill</strong></td><td><code>filled = floor((pct + 5) / 10)</code> — <strong>round half up</strong>, deliberately <em>not</em> the same rounding as the percent; clamp to 0–10</td></tr><tr><td><strong>Bar</strong></td><td><code>▓</code> (U+2593) × filled, then <code>░</code> (U+2591) × (10 − filled)</td></tr><tr><td><strong>Color</strong></td><td>Usage coloring, from the percent; <strong>bar and percent share one color run</strong></td></tr><tr><td><strong>Output</strong></td><td>color + bar + <code> </code> + pct + <code>%</code> + reset</td></tr><tr><td><strong>Drops?</strong></td><td><strong>Yes</strong> — the whole segment when the field is absent</td></tr></tbody></table>
+<h3 id="2-3-context-bar-and-percent">2·3 · Context bar and percent</h3>
+<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Source</strong></td><td><code>context_window.used_percentage</code></td></tr><tr><td><strong>Percent</strong></td><td>Round to nearest integer, <strong>half-to-even</strong> (C <code>printf %.0f</code> semantics); clamp to ≥ 0</td></tr><tr><td><strong>Fill</strong></td><td><code>filled = floor((pct + 5) / 10)</code> — <strong>round half up</strong>, deliberately <em>not</em> the same rounding as the percent; clamp to 0–10</td></tr><tr><td><strong>Bar</strong></td><td><code>▓</code> (U+2593) × filled, then <code>░</code> (U+2591) × (10 − filled)</td></tr><tr><td><strong>Color</strong></td><td>Usage coloring, from the percent; <strong>bar and percent share one color run</strong></td></tr><tr><td><strong>Output</strong></td><td>color + bar + <code> </code> + pct + <code>%</code> + reset</td></tr><tr><td><strong>Drops?</strong></td><td><strong>Yes</strong> — the whole segment when the field is absent</td></tr></tbody></table></div>
 <p>The two roundings differ on purpose: the percent is what C's <code>printf</code> gives, and the bar uses integer <code>(p+5)/10</code> so a displayed 45% fills five cells rather than four. Matching them would change the displayed percent.</p>
 <p><code>42</code> → <code>▓▓▓▓░░░░░░ 42%</code> in green.</p>
-<h3>4 · ⏳ 5-hour rate limit</h3>
-<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Source</strong></td><td><code>rate_limits.five_hour.resets_at</code> (unix seconds) and <code>.used_percentage</code></td></tr><tr><td><strong>Remaining</strong></td><td><code>s = max(0, resets_at − now)</code> — a past reset clamps to 0, never negative</td></tr><tr><td><strong>Split</strong></td><td><code>h = floor(s / 3600)</code>, <code>m = floor((s % 3600) / 60)</code></td></tr><tr><td><strong>Countdown</strong></td><td><code>⏳ </code> + countdown-color(<code>s</code>, 18000) + <code>[{h}h{m}m]</code> + reset</td></tr><tr><td><strong>Percent</strong></td><td><code> </code> + usage-color(pct) + <code>{pct}%</code> + reset, appended <strong>only if</strong> the percentage is present</td></tr><tr><td><strong>Drops?</strong></td><td><strong>Yes</strong> — the whole segment when <code>resets_at</code> is absent</td></tr></tbody></table>
+<h3 id="4-5-hour-rate-limit">4 · ⏳ 5-hour rate limit</h3>
+<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Source</strong></td><td><code>rate_limits.five_hour.resets_at</code> (unix seconds) and <code>.used_percentage</code></td></tr><tr><td><strong>Remaining</strong></td><td><code>s = max(0, resets_at − now)</code> — a past reset clamps to 0, never negative</td></tr><tr><td><strong>Split</strong></td><td><code>h = floor(s / 3600)</code>, <code>m = floor((s % 3600) / 60)</code></td></tr><tr><td><strong>Countdown</strong></td><td><code>⏳ </code> + countdown-color(<code>s</code>, 18000) + <code>[{h}h{m}m]</code> + reset</td></tr><tr><td><strong>Percent</strong></td><td><code> </code> + usage-color(pct) + <code>{pct}%</code> + reset, appended <strong>only if</strong> the percentage is present</td></tr><tr><td><strong>Drops?</strong></td><td><strong>Yes</strong> — the whole segment when <code>resets_at</code> is absent</td></tr></tbody></table></div>
 <p>Note there is <strong>no zero-padding and no space</strong> inside the bracket: <code>[2h0m]</code>, not <code>[2h 00m]</code>.</p>
-<h3>5 · 📅 7-day rate limit</h3>
+<h3 id="5-7-day-rate-limit">5 · 📅 7-day rate limit</h3>
 <p>Identical to the 5-hour segment except:</p>
-<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Source</strong></td><td><code>rate_limits.seven_day.*</code></td></tr><tr><td><strong>Split</strong></td><td><code>d = floor(s / 86400)</code>, <code>h = floor((s % 86400) / 3600)</code></td></tr><tr><td><strong>Format</strong></td><td><code>📅 [{d}d{h}h]</code></td></tr><tr><td><strong>Window</strong></td><td><code>604800</code></td></tr></tbody></table>
-<h3>6 · 📁 Directory</h3>
-<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Source</strong></td><td><code>workspace.current_dir</code>, falling back to <code>cwd</code></td></tr><tr><td><strong>Transform</strong></td><td>The <strong>leaf</strong> only — <code>/work/Home</code> → <code>Home</code></td></tr><tr><td><strong>Output</strong></td><td><code>📁 </code> + white + leaf + reset</td></tr><tr><td><strong>Drops?</strong></td><td>Never — falls back to a placeholder</td></tr></tbody></table>
-<h3>7 · 🌿 Branch</h3>
+<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Source</strong></td><td><code>rate_limits.seven_day.*</code></td></tr><tr><td><strong>Split</strong></td><td><code>d = floor(s / 86400)</code>, <code>h = floor((s % 86400) / 3600)</code></td></tr><tr><td><strong>Format</strong></td><td><code>📅 [{d}d{h}h]</code></td></tr><tr><td><strong>Window</strong></td><td><code>604800</code></td></tr></tbody></table></div>
+<h3 id="6-directory">6 · 📁 Directory</h3>
+<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Source</strong></td><td><code>workspace.current_dir</code>, falling back to <code>cwd</code></td></tr><tr><td><strong>Transform</strong></td><td>The <strong>leaf</strong> only — <code>/work/Home</code> → <code>Home</code></td></tr><tr><td><strong>Output</strong></td><td><code>📁 </code> + white + leaf + reset</td></tr><tr><td><strong>Drops?</strong></td><td>Never — falls back to a placeholder</td></tr></tbody></table></div>
+<h3 id="7-branch">7 · 🌿 Branch</h3>
 <p>Resolved from the <strong>filesystem</strong>, not the payload, and not by shelling out to <code>git</code>:</p>
 <ol><li>Start at the working directory from segment 6.</li><li>If <code>&lt;dir&gt;/.git/HEAD</code> exists as a file, read it and stop.</li><li>Otherwise move to the parent directory and repeat, stopping at the filesystem root.</li></ol>
 <p>Then interpret the contents of <code>HEAD</code>:</p>
-<table><thead><tr><th><code>HEAD</code> contains</th><th>Renders as</th></tr></thead><tbody><tr><td><code>ref: refs/heads/&lt;name&gt;</code></td><td><code>&lt;name&gt;</code> — that prefix stripped</td></tr><tr><td>Anything else (detached HEAD)</td><td>The <strong>first 7 characters</strong> — a short SHA</td></tr><tr><td>No <code>HEAD</code> found anywhere up the walk</td><td><code>---</code></td></tr></tbody></table>
+<div class="tablewrap"><table><thead><tr><th><code>HEAD</code> contains</th><th>Renders as</th></tr></thead><tbody><tr><td><code>ref: refs/heads/&lt;name&gt;</code></td><td><code>&lt;name&gt;</code> — that prefix stripped</td></tr><tr><td>Anything else (detached HEAD)</td><td>The <strong>first 7 characters</strong> — a short SHA</td></tr><tr><td>No <code>HEAD</code> found anywhere up the walk</td><td><code>---</code></td></tr></tbody></table></div>
 <p>Reading the file rather than running <code>git branch --show-current</code> is deliberate: it avoids a <code>git</code>-on-<code>PATH</code> dependency, and <code>--show-current</code> prints nothing on a detached HEAD where this spec requires a short SHA.</p>
-<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Output</strong></td><td><code>🌿 </code> + white + branch + reset</td></tr><tr><td><strong>Drops?</strong></td><td>Never — <code>---</code> when no repo</td></tr></tbody></table>
-<h3>8 · 💰 Cost</h3>
-<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Source</strong></td><td><code>cost.total_cost_usd</code>, defaulting to <code>0</code></td></tr><tr><td><strong>Format</strong></td><td>Fixed <strong>two</strong> decimal places, prefixed <code>$</code></td></tr><tr><td><strong>Output</strong></td><td><code>💰 </code> + white + <code>$</code> + amount + reset</td></tr><tr><td><strong>Drops?</strong></td><td>Never — <code>$0.00</code></td></tr></tbody></table>
-<h3>9 · ⏱️ Elapsed</h3>
-<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Source</strong></td><td><code>cost.total_duration_ms</code>, defaulting to <code>0</code></td></tr><tr><td><strong>Split</strong></td><td><code>h = floor(ms / 3600000)</code>, <code>m = floor((ms % 3600000) / 60000)</code></td></tr><tr><td><strong>Format</strong></td><td><code>{h}h{m}m</code> when <code>h &gt; 0</code>, otherwise <code>{m}m</code></td></tr><tr><td><strong>Output</strong></td><td><code>⏱️ </code> + white + duration + reset — <strong>white, not colored</strong></td></tr><tr><td><strong>Drops?</strong></td><td>Never — <code>0m</code></td></tr></tbody></table>
+<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Output</strong></td><td><code>🌿 </code> + white + branch + reset</td></tr><tr><td><strong>Drops?</strong></td><td>Never — <code>---</code> when no repo</td></tr></tbody></table></div>
+<h3 id="8-cost">8 · 💰 Cost</h3>
+<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Source</strong></td><td><code>cost.total_cost_usd</code>, defaulting to <code>0</code></td></tr><tr><td><strong>Format</strong></td><td>Fixed <strong>two</strong> decimal places, prefixed <code>$</code></td></tr><tr><td><strong>Output</strong></td><td><code>💰 </code> + white + <code>$</code> + amount + reset</td></tr><tr><td><strong>Drops?</strong></td><td>Never — <code>$0.00</code></td></tr></tbody></table></div>
+<h3 id="9-elapsed">9 · ⏱️ Elapsed</h3>
+<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Source</strong></td><td><code>cost.total_duration_ms</code>, defaulting to <code>0</code></td></tr><tr><td><strong>Split</strong></td><td><code>h = floor(ms / 3600000)</code>, <code>m = floor((ms % 3600000) / 60000)</code></td></tr><tr><td><strong>Format</strong></td><td><code>{h}h{m}m</code> when <code>h &gt; 0</code>, otherwise <code>{m}m</code></td></tr><tr><td><strong>Output</strong></td><td><code>⏱️ </code> + white + duration + reset — <strong>white, not colored</strong></td></tr><tr><td><strong>Drops?</strong></td><td>Never — <code>0m</code></td></tr></tbody></table></div>
 <p><code>5400000</code> → <code>1h30m</code>. <code>120000</code> → <code>2m</code>.</p>
-<h2>Assembly</h2>
+<h2 id="assembly">Assembly</h2>
 <pre><code>line1 = "| " + model
         + (context   ? " | " + context   : "")
         + (fiveHour  ? " | " + fiveHour  : "")
@@ -94,8 +97,8 @@ line2 = "| " + dir + " | " + branch + " | " + cost + " | " + elapsed + " |"
 
 output = line1 + "\n" + rule + "\n" + line2 + "\n" + rule</code></pre>
 <p>An absent segment shortens line 1 rather than leaving a gap or a doubled delimiter. On a brand-new session, before Claude Code has populated <code>context_window</code> or <code>rate_limits</code>, line 1 is legitimately just <code>| 🤖 [Opus 4.8] |</code>.</p>
-<h2>Character inventory</h2>
+<h2 id="character-inventory">Character inventory</h2>
 <p>Everything non-ASCII the renderer can emit. All must survive as UTF-8 to the terminal.</p>
-<table><thead><tr><th>Char</th><th>Code point</th><th>Use</th><th>BMP?</th></tr></thead><tbody><tr><td><code>▓</code></td><td>U+2593</td><td>Bar, filled cell</td><td>✅</td></tr><tr><td><code>░</code></td><td>U+2591</td><td>Bar, empty cell</td><td>✅</td></tr><tr><td><code>─</code></td><td>U+2500</td><td>Rule</td><td>✅</td></tr><tr><td><code>⏳</code></td><td>U+23F3</td><td>5-hour label</td><td>✅</td></tr><tr><td><code>⏱️</code></td><td>U+23F1 U+FE0F</td><td>Elapsed label (with variation selector)</td><td>✅</td></tr><tr><td><code>🤖</code></td><td>U+1F916</td><td>Model label</td><td>❌ astral</td></tr><tr><td><code>📅</code></td><td>U+1F4C5</td><td>7-day label</td><td>❌ astral</td></tr><tr><td><code>📁</code></td><td>U+1F4C1</td><td>Directory label</td><td>❌ astral</td></tr><tr><td><code>🌿</code></td><td>U+1F33F</td><td>Branch label</td><td>❌ astral</td></tr><tr><td><code>💰</code></td><td>U+1F4B0</td><td>Cost label</td><td>❌ astral</td></tr></tbody></table>
+<div class="tablewrap"><table><thead><tr><th>Char</th><th>Code point</th><th>Use</th><th>BMP?</th></tr></thead><tbody><tr><td><code>▓</code></td><td>U+2593</td><td>Bar, filled cell</td><td>✅</td></tr><tr><td><code>░</code></td><td>U+2591</td><td>Bar, empty cell</td><td>✅</td></tr><tr><td><code>─</code></td><td>U+2500</td><td>Rule</td><td>✅</td></tr><tr><td><code>⏳</code></td><td>U+23F3</td><td>5-hour label</td><td>✅</td></tr><tr><td><code>⏱️</code></td><td>U+23F1 U+FE0F</td><td>Elapsed label (with variation selector)</td><td>✅</td></tr><tr><td><code>🤖</code></td><td>U+1F916</td><td>Model label</td><td>❌ astral</td></tr><tr><td><code>📅</code></td><td>U+1F4C5</td><td>7-day label</td><td>❌ astral</td></tr><tr><td><code>📁</code></td><td>U+1F4C1</td><td>Directory label</td><td>❌ astral</td></tr><tr><td><code>🌿</code></td><td>U+1F33F</td><td>Branch label</td><td>❌ astral</td></tr><tr><td><code>💰</code></td><td>U+1F4B0</td><td>Cost label</td><td>❌ astral</td></tr></tbody></table></div>
 <p>The five astral-plane characters are why <code>statusline.ps1</code> builds its emoji with <code>[char]::ConvertFromUtf32</code> rather than using literals, and why the file needs its UTF-8 BOM. See <a href="implementations.md">Implementations</a> and <a href="testing.md#platform-notes">Testing</a>.</p>
 </main></body></html>

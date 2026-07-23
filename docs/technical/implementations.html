@@ -1,13 +1,14 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Implementations</title><style>
-:root{--bg:#f7f8fa;--fg:#181820;--muted:#565666;--line:#e5e7ec;--code-bg:#eef0f4;--accent:#4577d1;--link:#3a67b8}
-@media(prefers-color-scheme:dark){:root{--bg:#080a0e;--fg:#e9ecf3;--muted:#a2a7b8;--line:#232735;--code-bg:#12141b;--accent:#5b8de0;--link:#6f9ae6}}
+:root{--bg:#fbfbfa;--fg:#22201d;--muted:#6b6862;--line:#e6e3dd;--code-bg:#f0eee9;--accent:#b5651d;--link:#a1571a}
+@media(prefers-color-scheme:dark){:root{--bg:#1a1917;--fg:#e6e3dd;--muted:#9a968e;--line:#332f2a;--code-bg:#26241f;--accent:#d99a5b;--link:#e0a866}}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;margin:0}
 .wrap{max-width:760px;margin:0 auto;padding:64px 28px 120px}
 h1{font-size:2rem;line-height:1.2;margin:0 0 .3em;letter-spacing:-.02em}
 h2{font-size:1.35rem;margin:2.2em 0 .5em;padding-bottom:.25em;border-bottom:1px solid var(--line)}
 h3{font-size:1.08rem;margin:1.8em 0 .4em}
+h1,h2,h3,h4,h5,h6{scroll-margin-top:1.2em}
 p{margin:.7em 0}
 a{color:var(--link);text-decoration:none;border-bottom:1px solid transparent}
 a:hover{border-bottom-color:var(--link)}
@@ -18,73 +19,75 @@ ul,ol{padding-left:1.4em;margin:.7em 0}
 li{margin:.3em 0}
 blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:var(--code-bg);border-radius:0 6px 6px 0;color:var(--muted)}
 blockquote strong{color:var(--fg)}
-table{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:.92em;display:block;overflow-x:auto}
+.tablewrap{overflow-x:auto;margin:1.1em 0}
+table{border-collapse:collapse;width:100%;font-size:.92em}
 th,td{border:1px solid var(--line);padding:.5em .7em;text-align:left;vertical-align:top}
+td:first-child{white-space:nowrap}
 th{background:var(--code-bg);font-weight:600}
 hr{border:none;border-top:1px solid var(--line);margin:2em 0}
 strong{font-weight:650}
 </style></head><body><main class="wrap">
-<h1>Implementations</h1>
+<h1 id="implementations">Implementations</h1>
 <p>The kit's load-bearing abstraction — and the one that isn't code. Two independent programs produce identical output, held together by a shared set of expected-output files rather than by any shared implementation.</p>
 <p>Read <a href="rendering.md">Rendering</a> first; it's the specification both of these satisfy.</p>
-<h2>The two</h2>
-<table><thead><tr><th></th><th><code>statusline-command.sh</code></th><th><code>statusline.ps1</code></th></tr></thead><tbody><tr><td><strong>Shell</strong></td><td>bash, 3.2-safe</td><td>PowerShell, 5.1-safe</td></tr><tr><td><strong>Platform</strong></td><td>macOS / Linux</td><td>Windows</td></tr><tr><td><strong>Lines</strong></td><td>227</td><td>222</td></tr><tr><td><strong>JSON</strong></td><td><code>jq</code>, one invocation</td><td><code>ConvertFrom-Json</code></td></tr><tr><td><strong>Guard idiom</strong></td><td><code>is_set</code> + <code>jq //</code> defaults</td><td><code>Get-Safe</code> path walker</td></tr><tr><td><strong>Clock</strong></td><td><code>date +%s</code>, or <code>$SL_NOW</code></td><td><code>[DateTimeOffset]::UtcNow</code>, or <code>$env:SL_NOW</code></td></tr><tr><td><strong>Output</strong></td><td>one <code>printf</code>, no trailing newline</td><td>four <code>Write-Host</code>, trailing newline</td></tr><tr><td><strong>Encoding hazard</strong></td><td>none</td><td><strong>UTF-8 BOM required on line 1</strong></td></tr><tr><td><strong>Status</strong></td><td><strong>Reference implementation</strong></td><td>Held to bash's goldens</td></tr></tbody></table>
-<h2>Why two, and why no shared core</h2>
+<h2 id="the-two">The two</h2>
+<div class="tablewrap"><table><thead><tr><th></th><th><code>statusline-command.sh</code></th><th><code>statusline.ps1</code></th></tr></thead><tbody><tr><td><strong>Shell</strong></td><td>bash, 3.2-safe</td><td>PowerShell, 5.1-safe</td></tr><tr><td><strong>Platform</strong></td><td>macOS / Linux</td><td>Windows</td></tr><tr><td><strong>Lines</strong></td><td>227</td><td>222</td></tr><tr><td><strong>JSON</strong></td><td><code>jq</code>, one invocation</td><td><code>ConvertFrom-Json</code></td></tr><tr><td><strong>Guard idiom</strong></td><td><code>is_set</code> + <code>jq //</code> defaults</td><td><code>Get-Safe</code> path walker</td></tr><tr><td><strong>Clock</strong></td><td><code>date +%s</code>, or <code>$SL_NOW</code></td><td><code>[DateTimeOffset]::UtcNow</code>, or <code>$env:SL_NOW</code></td></tr><tr><td><strong>Output</strong></td><td>one <code>printf</code>, no trailing newline</td><td>four <code>Write-Host</code>, trailing newline</td></tr><tr><td><strong>Encoding hazard</strong></td><td>none</td><td><strong>UTF-8 BOM required on line 1</strong></td></tr><tr><td><strong>Status</strong></td><td><strong>Reference implementation</strong></td><td>Held to bash's goldens</td></tr></tbody></table></div>
+<h2 id="why-two-and-why-no-shared-core">Why two, and why no shared core</h2>
 <p>The obvious fix for dual maintenance is a shared core — one implementation of the logic, two thin platform shims. There is no such core available, because there is no language both shells can call that's <strong>guaranteed present on both platforms</strong>. Introducing one (Node being the strongest candidate) reintroduces exactly the runtime dependency that <a href="../decisions/0001-two-native-shell-scripts-over-node.md">ADR 0001</a> exists to reject: Claude Code's native-binary installer bundles no Node and puts none on <code>PATH</code>, so a Node-based statusline simply fails on machines where Claude Code itself runs fine.</p>
 <p>So the duplication is accepted, and the mitigation moves from <em>structure</em> to <em>tests</em>. This is the whole trade:</p>
 <blockquote>
 <p>Two files that must stay in behavioral lockstep, with the lockstep enforced by a CI check rather than by a compiler.</p>
 </blockquote>
 <p>The risk is not hypothetical. Every parity bug found so far has been PowerShell drifting from a correct bash — see the list below.</p>
-<h2>Bash is the reference</h2>
+<h2 id="bash-is-the-reference">Bash is the reference</h2>
 <p>Concretely, that means:</p>
 <ol><li><code>tests/golden/*.txt</code> are <strong>generated by running the bash script</strong>.</li><li><code>tests/run.ps1</code> compares PowerShell's output against those same files.</li><li>When the two disagree, the default resolution is <strong>PowerShell is wrong</strong>, unless bash is demonstrably violating <a href="rendering.md">the spec</a>.</li><li>An intentional format change is made in bash first, the goldens are regenerated from it, and PowerShell is then brought up to the new goldens.</li></ol>
 <p>Regenerating (from <code>tests/README.md</code>):</p>
 <pre><code>for f in tests/fixtures/*.json; do
   SL_NOW=1700000000 bash statusline-command.sh &lt; "$f" &gt; "tests/golden/$(basename "$f" .json).txt"
 done</code></pre>
-<h2>Structural differences that are <em>not</em> bugs</h2>
+<h2 id="structural-differences-that-are-not-bugs">Structural differences that are <em>not</em> bugs</h2>
 <p>These two implementations differ in shape without differing in behavior. Don't "fix" them.</p>
-<table><thead><tr><th>Difference</th><th>bash</th><th>PowerShell</th><th>Why it's fine</th></tr></thead><tbody><tr><td><strong>Parse strategy</strong></td><td>One <code>jq</code> call emits nine values, one per line; read back with nine <code>read -r</code></td><td><code>ConvertFrom-Json</code> once, then <code>Get-Safe</code> per field</td><td>Both produce the same nine scalars with the same defaults. <code>jq</code>'s <code>//</code> and <code>Get-Safe</code>'s <code>$default</code> are the same guard.</td></tr><tr><td><strong>Line assembly</strong></td><td>String concatenation with explicit <code>is_set</code> tests</td><td>An array <code>$parts</code> that segments are appended to, <code>-join</code>ed at the end</td><td>Same result; the array form is idiomatic PowerShell and avoids the empty-string tests.</td></tr><tr><td><strong>Trailing newline</strong></td><td>None</td><td>One</td><td>Explicitly outside the spec — both runners <code>TrimEnd</code> before comparing.</td></tr><tr><td><strong>Emoji</strong></td><td>UTF-8 literals in source</td><td><code>[char]::ConvertFromUtf32(0x1F916)</code></td><td>PS 5.1 mangles astral-plane literals. The construction is the workaround, not a style choice.</td></tr><tr><td><strong>File encoding</strong></td><td>Plain UTF-8</td><td>UTF-8 <strong>with BOM</strong></td><td>Load-bearing on PS 5.1. See below.</td></tr><tr><td><strong>Rounding calls</strong></td><td><code>printf '%.0f'</code></td><td><code>[int][math]::Round(...)</code> / <code>[int]</code> cast</td><td>Both are round-half-to-even. They agree.</td></tr><tr><td><strong>Bar fill</strong></td><td><code>(p + 5) / 10</code> integer division</td><td><code>[math]::Floor(($pct + 5) / 10)</code></td><td>Both are round-half-up, deliberately different from the percent's rounding.</td></tr></tbody></table>
-<h2>Per-implementation gotchas</h2>
-<h3>bash — CRLF from a Windows <code>jq</code></h3>
+<div class="tablewrap"><table><thead><tr><th>Difference</th><th>bash</th><th>PowerShell</th><th>Why it's fine</th></tr></thead><tbody><tr><td><strong>Parse strategy</strong></td><td>One <code>jq</code> call emits nine values, one per line; read back with nine <code>read -r</code></td><td><code>ConvertFrom-Json</code> once, then <code>Get-Safe</code> per field</td><td>Both produce the same nine scalars with the same defaults. <code>jq</code>'s <code>//</code> and <code>Get-Safe</code>'s <code>$default</code> are the same guard.</td></tr><tr><td><strong>Line assembly</strong></td><td>String concatenation with explicit <code>is_set</code> tests</td><td>An array <code>$parts</code> that segments are appended to, <code>-join</code>ed at the end</td><td>Same result; the array form is idiomatic PowerShell and avoids the empty-string tests.</td></tr><tr><td><strong>Trailing newline</strong></td><td>None</td><td>One</td><td>Explicitly outside the spec — both runners <code>TrimEnd</code> before comparing.</td></tr><tr><td><strong>Emoji</strong></td><td>UTF-8 literals in source</td><td><code>[char]::ConvertFromUtf32(0x1F916)</code></td><td>PS 5.1 mangles astral-plane literals. The construction is the workaround, not a style choice.</td></tr><tr><td><strong>File encoding</strong></td><td>Plain UTF-8</td><td>UTF-8 <strong>with BOM</strong></td><td>Load-bearing on PS 5.1. See below.</td></tr><tr><td><strong>Rounding calls</strong></td><td><code>printf '%.0f'</code></td><td><code>[int][math]::Round(...)</code> / <code>[int]</code> cast</td><td>Both are round-half-to-even. They agree.</td></tr><tr><td><strong>Bar fill</strong></td><td><code>(p + 5) / 10</code> integer division</td><td><code>[math]::Floor(($pct + 5) / 10)</code></td><td>Both are round-half-up, deliberately different from the percent's rounding.</td></tr></tbody></table></div>
+<h2 id="per-implementation-gotchas">Per-implementation gotchas</h2>
+<h3 id="bash-crlf-from-a-windows-jq">bash — CRLF from a Windows <code>jq</code></h3>
 <p>A native Windows <code>jq.exe</code> (Chocolatey's, for instance) terminates lines with <strong>CRLF</strong>. Under Git Bash every parsed value would then arrive with a trailing <code>\r</code> — enough to break the arithmetic (<code>"5400000\r" - now</code>) and smear stray carriage returns through the output. The script strips CR at <strong>both</strong> <code>jq</code> boundaries:</p>
 <pre><code>… | jq -r '…' | tr -d '\r'                                    # render path
 existing_cmd=$(jq -r '…' "$settings" | tr -d '\r')            # install path</code></pre>
 <p>Both are no-ops where <code>jq</code> emits LF. The install-path strip matters for a subtler reason: a stray CR would make the kit's own configured command compare unequal to its destination path, so a plain <strong>refresh</strong> would warn as though it were clobbering a foreign statusline.</p>
 <p>This path has <strong>no CI coverage</strong> (<strong>CSK-0004</strong>) — it's an unsupported configuration.</p>
-<h3>bash — the bare-invocation guard</h3>
+<h3 id="bash-the-bare-invocation-guard">bash — the bare-invocation guard</h3>
 <p>Run with no arguments at an interactive TTY, the script would block forever on <code>cat</code>. It detects that and prints usage instead:</p>
 <pre><code>if [ -t 0 ] &amp;&amp; [ "$#" -eq 0 ]; then …; fi</code></pre>
 <p>PowerShell has no equivalent and falls straight to <code>[Console]::In.ReadToEnd()</code> (<strong>CSK-0008</strong>).</p>
-<h3>PowerShell — the UTF-8 BOM is load-bearing</h3>
+<h3 id="powershell-the-utf-8-bom-is-load-bearing">PowerShell — the UTF-8 BOM is load-bearing</h3>
 <p><code>statusline.ps1</code> carries a UTF-8 BOM on line 1. Without it, Windows PowerShell 5.1 reads the file as Windows-1252, mangles the astral-plane emoji, and <strong>fails to parse</strong>.</p>
 <p>Many editors, formatters, and <code>git</code> filters strip BOMs silently. If the PowerShell script suddenly fails to run on 5.1 and looks unchanged, check the BOM first.</p>
-<h3>PowerShell — console encoding</h3>
+<h3 id="powershell-console-encoding">PowerShell — console encoding</h3>
 <p>The script sets <code>[Console]::OutputEncoding</code> to UTF-8 before writing. The test runner has a matching and much fiddlier problem — PS 5.1 decodes a child's stdout using the OEM codepage, turning every emoji into mojibake — covered in <a href="testing.md#platform-notes">Testing</a>.</p>
-<h3>PowerShell — the install command is a wrapper</h3>
+<h3 id="powershell-the-install-command-is-a-wrapper">PowerShell — the install command is a wrapper</h3>
 <p>bash installs <code>~/.claude/statusline-command.sh</code> as the command directly. PowerShell can't: it registers an invocation instead, choosing the executable by the version it's running under —</p>
 <pre><code>$exe = if ($PSVersionTable.PSVersion.Major -ge 6) { 'pwsh' } else { 'powershell' }
 $newCmd = "$exe -NoProfile -ExecutionPolicy Bypass -File `"$dest`""</code></pre>
 <p><code>-NoProfile</code> keeps a user's profile from injecting output into the statusline; <code>-ExecutionPolicy Bypass</code> avoids a signing prompt on a file the user just downloaded.</p>
-<h2>Known divergences</h2>
+<h2 id="known-divergences">Known divergences</h2>
 <p>Real behavioral differences confirmed by code inspection, none of them covered by the golden suite — because every fixture supplies <code>resets_at</code> and <code>used_percentage</code> <strong>together or not at all</strong>, and every fixture has a working directory. These are the blind spots the current fixture set structurally cannot see.</p>
 <p>The bash column below is verified by execution; the PowerShell column is <strong>by inspection only</strong> — there's no <code>pwsh</code> on the primary development machine (<strong>CSK-0005</strong>).</p>
-<h3>1 · Rate-limit segment drop condition</h3>
-<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>bash</strong></td><td>Renders the segment when <strong><code>resets_at</code></strong> is present; appends the percentage only if <em>it</em> is also present (<code>statusline-command.sh:155,159</code>).</td></tr><tr><td><strong>PowerShell</strong></td><td>Requires <strong>both</strong> <code>resets_at</code> <strong>and</strong> <code>used_percentage</code>; drops the whole segment otherwise (<code>statusline.ps1:137,148</code>).</td></tr></tbody></table>
+<h3 id="1-rate-limit-segment-drop-condition">1 · Rate-limit segment drop condition</h3>
+<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>bash</strong></td><td>Renders the segment when <strong><code>resets_at</code></strong> is present; appends the percentage only if <em>it</em> is also present (<code>statusline-command.sh:155,159</code>).</td></tr><tr><td><strong>PowerShell</strong></td><td>Requires <strong>both</strong> <code>resets_at</code> <strong>and</strong> <code>used_percentage</code>; drops the whole segment otherwise (<code>statusline.ps1:137,148</code>).</td></tr></tbody></table></div>
 <p>Given <code>{"rate_limits":{"five_hour":{"resets_at":…}}}</code> with no percentage:</p>
 <pre><code>bash        | 🤖 [Opus 4.8] | ⏳ [2h0m] |
 PowerShell  | 🤖 [Opus 4.8] |</code></pre>
 <p>Bash matches <a href="rendering.md#4--5-hour-rate-limit">the spec</a> as written. Whether a countdown without a percentage is <em>desirable</em> is a separate question — but the two implementations should not disagree about it.</p>
-<h3>2 · Empty-directory placeholder</h3>
-<table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>bash</strong></td><td><code>—</code> (U+2014 em dash) when the directory leaf is empty (<code>statusline-command.sh:182</code>).</td></tr><tr><td><strong>PowerShell</strong></td><td><code>---</code> (three hyphens) when the working directory is absent (<code>statusline.ps1:166</code>).</td></tr></tbody></table>
+<h3 id="2-empty-directory-placeholder">2 · Empty-directory placeholder</h3>
+<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>bash</strong></td><td><code>—</code> (U+2014 em dash) when the directory leaf is empty (<code>statusline-command.sh:182</code>).</td></tr><tr><td><strong>PowerShell</strong></td><td><code>---</code> (three hyphens) when the working directory is absent (<code>statusline.ps1:166</code>).</td></tr></tbody></table></div>
 <pre><code>bash        | 📁 — | 🌿 --- | 💰 $0.00 | ⏱️ 0m |
 PowerShell  | 📁 --- | 🌿 --- | 💰 $0.00 | ⏱️ 0m |</code></pre>
 <p>Reachable with a payload carrying neither <code>workspace.current_dir</code> nor <code>cwd</code>. Note the branch segment uses <code>---</code> in <em>both</em> implementations, so bash is the odd one out — but it's also the reference, which is why this needs a decision rather than a silent fix.</p>
-<h3>Parity bugs already fixed</h3>
+<h3 id="parity-bugs-already-fixed">Parity bugs already fixed</h3>
 <p>All bash-correct, PowerShell drifted — the track record that motivated the golden suite:</p>
 <ul><li>Rate-limit segments not dropping when the fields were absent.</li><li>The context bar using banker's rounding where bash rounds half up.</li><li>The context segment not dropping when its field was absent.</li><li><code>cwd</code> not preferring <code>workspace.current_dir</code> over the top-level <code>cwd</code>.</li></ul>
-<h2>Adding a third implementation</h2>
+<h2 id="adding-a-third-implementation">Adding a third implementation</h2>
 <p>If a platform ever needs one, the checklist is:</p>
 <ol><li>Satisfy <a href="rendering.md">Rendering</a> exactly — it's the contract, not a description.</li><li>Guard every field read; never assert on payload shape.</li><li>Honour <code>SL_NOW</code>, or the tests can't pin the clock.</li><li>Add a runner that compares against the <strong>existing</strong> <code>tests/golden/*.txt</code> — do not generate new goldens.</li><li>Add a CI job for it, so parity stays merge-blocking.</li><li>Support both modes: render and self-install.</li></ol>
 </main></body></html>

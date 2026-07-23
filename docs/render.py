@@ -5,7 +5,7 @@ The docs follow a MD + HTML lock-step convention: the `.md` is the source of
 truth, the `.html` is a styled human-review render of the same content. This is
 the tool that produces the render — run it after editing any paired `.md`:
 
-    python docs/render.py docs/tickets/Tickets.md
+    python docs/render.py docs/tickets/tickets.md
 
 Each `name.md` is written next to it as `name.html`, wrapped in a shared,
 theme-aware CSS template (light/dark via prefers-color-scheme).
@@ -23,14 +23,15 @@ from pathlib import Path
 
 HEAD = '''<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{title}</title><style>
-:root{{--bg:#f7f8fa;--fg:#181820;--muted:#565666;--line:#e5e7ec;--code-bg:#eef0f4;--accent:#4577d1;--link:#3a67b8}}
-@media(prefers-color-scheme:dark){{:root{{--bg:#080a0e;--fg:#e9ecf3;--muted:#a2a7b8;--line:#232735;--code-bg:#12141b;--accent:#5b8de0;--link:#6f9ae6}}}}
+:root{{--bg:#fbfbfa;--fg:#22201d;--muted:#6b6862;--line:#e6e3dd;--code-bg:#f0eee9;--accent:#b5651d;--link:#a1571a}}
+@media(prefers-color-scheme:dark){{:root{{--bg:#1a1917;--fg:#e6e3dd;--muted:#9a968e;--line:#332f2a;--code-bg:#26241f;--accent:#d99a5b;--link:#e0a866}}}}
 *{{box-sizing:border-box}}
 body{{background:var(--bg);color:var(--fg);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;margin:0}}
 .wrap{{max-width:760px;margin:0 auto;padding:64px 28px 120px}}
 h1{{font-size:2rem;line-height:1.2;margin:0 0 .3em;letter-spacing:-.02em}}
 h2{{font-size:1.35rem;margin:2.2em 0 .5em;padding-bottom:.25em;border-bottom:1px solid var(--line)}}
 h3{{font-size:1.08rem;margin:1.8em 0 .4em}}
+h1,h2,h3,h4,h5,h6{{scroll-margin-top:1.2em}}
 p{{margin:.7em 0}}
 a{{color:var(--link);text-decoration:none;border-bottom:1px solid transparent}}
 a:hover{{border-bottom-color:var(--link)}}
@@ -41,8 +42,10 @@ ul,ol{{padding-left:1.4em;margin:.7em 0}}
 li{{margin:.3em 0}}
 blockquote{{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:var(--code-bg);border-radius:0 6px 6px 0;color:var(--muted)}}
 blockquote strong{{color:var(--fg)}}
-table{{border-collapse:collapse;width:100%;margin:1.1em 0;font-size:.92em;display:block;overflow-x:auto}}
+.tablewrap{{overflow-x:auto;margin:1.1em 0}}
+table{{border-collapse:collapse;width:100%;font-size:.92em}}
 th,td{{border:1px solid var(--line);padding:.5em .7em;text-align:left;vertical-align:top}}
+td:first-child{{white-space:nowrap}}
 th{{background:var(--code-bg);font-weight:600}}
 hr{{border:none;border-top:1px solid var(--line);margin:2em 0}}
 strong{{font-weight:650}}
@@ -53,6 +56,14 @@ FOOT = '\n</main></body></html>\n'
 
 def esc(s: str) -> str:
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def slug(text: str) -> str:
+    """A URL fragment from heading prose — inline markup stripped, links reduced to
+    their label, everything else lowercased and hyphenated."""
+    t = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)  # links -> label
+    t = re.sub(r"[`*_]", "", t)                        # inline markup
+    return re.sub(r"[^a-z0-9]+", "-", t.lower()).strip("-")
 
 
 def inline(text: str) -> str:
@@ -69,9 +80,15 @@ def inline(text: str) -> str:
     # 3) links [text](url)
     text = re.sub(r"\[([^\]]+)\]\(([^)]+)\)",
                   lambda m: f'<a href="{m.group(2)}">{m.group(1)}</a>', text)
-    # 4) bold then italic
-    text = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", text)
-    text = re.sub(r"(?<!\*)\*(?!\*)([^*]+)\*(?!\*)", r"<em>\1</em>", text)
+    # 4) bold, then italic. Bold may wrap an italic (`**a *b* c**`), so match the
+    #    bold body non-greedily (it can contain single `*`) and resolve any italics
+    #    inside it first; then italicise what remains. An italic wrapping a bold
+    #    (`*a **b** c*`) falls out too, since the inner bold is consumed first.
+    def italic(s: str) -> str:
+        return re.sub(r"(?<!\*)\*(?!\*)([^*]+)\*(?!\*)", r"<em>\1</em>", s)
+    text = re.sub(r"\*\*(.+?)\*\*",
+                  lambda m: f"<strong>{italic(m.group(1))}</strong>", text)
+    text = italic(text)
     # 5) restore code spans (escaped)
     text = re.sub(r"\x00(\d+)\x00", lambda m: f"<code>{esc(spans[int(m.group(1))])}</code>", text)
     return text
@@ -115,7 +132,16 @@ def render_blocks(lines: list[str]) -> list[str]:
         m = re.match(r"^(#{1,6})\s+(.*)$", line)
         if m:
             lvl = len(m.group(1))
-            out.append(f"<h{lvl}>{inline(m.group(2).strip())}</h{lvl}>")
+            body = m.group(2).strip()
+            # an explicit `{#custom-id}` wins over the auto-slug, so an anchor can
+            # stay stable when the heading's wording changes
+            anc = re.search(r"\s*\{#([A-Za-z0-9_-]+)\}\s*$", body)
+            if anc:
+                hid, body = anc.group(1), body[:anc.start()].rstrip()
+            else:
+                hid = slug(body)
+            attr = f' id="{esc(hid)}"' if hid else ""
+            out.append(f"<h{lvl}{attr}>{inline(body)}</h{lvl}>")
             i += 1
             continue
         # hr
@@ -145,8 +171,8 @@ def render_blocks(lines: list[str]) -> list[str]:
             for r in body:
                 tds = "".join(f"<td>{inline(c)}</td>" for c in r)
                 rows.append(f"<tr>{tds}</tr>")
-            out.append(f"<table><thead><tr>{th}</tr></thead><tbody>"
-                       + "".join(rows) + "</tbody></table>")
+            out.append(f'<div class="tablewrap"><table><thead><tr>{th}</tr></thead><tbody>'
+                       + "".join(rows) + "</tbody></table></div>")
             continue
         # list (ordered or unordered)
         m = LIST_RE.match(line)
