@@ -2,7 +2,7 @@
 
 The backlog. Board-first: a lightweight tracker until a real one is warranted. IDs are `CSK-NNNN`, uppercase, never reused.
 
-**What is *not* here:** the steps to *take the repo public* — secrets scan, private-content sweep, the flip. Those are a **pre-flight checklist run once when the project is ready**, kept as a separate release runbook, not backlog. This board tracks *building the product*.
+**What is *not* here:** one-off release steps. Taking the repo public — secrets scan, private-content sweep, the flip — was a pre-flight checklist, run once; the repo has been public since July 2026. Checklists like that live in a release runbook, not the backlog. This board tracks *building the product*.
 
 Rows are pointers; anything needing more than a sentence has a block in **Details**, below the board.
 
@@ -27,6 +27,7 @@ Rows are pointers; anything needing more than a sentence has a block in **Detail
 | [CSK-0011](#csk-0011) | P2 | Bug | Line 1 is nearly empty until the first message is sent |
 | [CSK-0012](#csk-0012) | P2 | Bug | Rate-limit segment drop condition diverges between the two scripts |
 | [CSK-0014](#csk-0014) | P2 | Chore | Fixtures never exercise partial rate-limit or absent-cwd payloads |
+| [CSK-0015](#csk-0015) | P2 | Feature | Optional payload export, so other tools can read the session JSON |
 | [CSK-0002](#csk-0002) | P3 | Feature | Truecolor status colours |
 | [CSK-0003](#csk-0003) | P3 | Feature | Builder / wizard — pick segments and a layout, generate the script |
 | [CSK-0004](#csk-0004) | P3 | Chore | Git-Bash + Windows-jq CI leg |
@@ -114,6 +115,15 @@ With a payload carrying neither `workspace.current_dir` nor `cwd`, bash renders 
 **P2 · Chore · tests**
 
 Every `tests/fixtures/*.json` supplies `resets_at` and `used_percentage` **together or not at all**, and every fixture has a working directory. That is structurally why **CSK-0012** and **CSK-0013** were invisible to a suite whose whole job is catching bash-vs-PowerShell drift. Add two fixtures + goldens: one rate-limit window with `resets_at` but no `used_percentage`, and one payload with neither `workspace.current_dir` nor `cwd`. Same family as **CSK-0007** (branch coverage) — all three are gaps where the golden model can't see a divergence. Resolve **CSK-0012**/**CSK-0013** first, since the goldens encode whichever behaviour is chosen.
+
+### CSK-0015 — Optional payload export, so other tools can read the session JSON {#csk-0015}
+**P2 · Feature · tooling**
+
+The session JSON is the only place several numbers exist on the machine — notably the rate-limit windows, which Claude Code holds in memory from API response headers, writes to no file, and exposes through no CLI. Anything else that wants them (a phone-readable usage command, a logger, a nightly usage graph) has exactly one option today: intercept the payload by *replacing* the `statusLine` command with a wrapper that captures stdin and then calls this kit. That works — `[Console]::SetIn` re-arms stdin so the kit runs in-process, output byte-identical — but it is a workaround built on a hole, and it has a sharp edge this repo owns: **`--install` / `-Install` rewrites `statusLine.command` unconditionally, so installing or refreshing the kit silently deletes the wrapper.** The statusline keeps rendering, so nothing looks broken; the downstream tool just goes quiet. Related to **CSK-0001** (lifecycle verbs) and **CSK-0009** (the install path's other unconditional write), but distinct: those are about managing our own install, this is about not breaking someone else's.
+
+Proposal: an opt-in "write the payload here" setting — an env var (`SL_PAYLOAD_OUT`, matching the existing `SL_NOW` test hook) or a config key — that dumps the received JSON verbatim to a path before rendering. Write temp-then-rename so a reader can never catch a partial file, and keep it strictly best-effort: a failed export must never affect the render, per the "no read of this payload may raise" rule in `technical/data-model-and-config.md`. Under ADR-0001 it lands in **both** `statusline.ps1` and `statusline-command.sh`, with a fixture and golden proving the render is unchanged when the hook is set. Worth considering whether the exported file should be keyed by session — a single fixed path is racy the moment two sessions run at once, which is the normal case.
+
+Filed 2026-08-28 from the wrapper actually in use at `Home/Projects/Remote Control/db-statusline-capture.ps1`; that is the reference implementation to port from.
 
 ## Conventions
 
